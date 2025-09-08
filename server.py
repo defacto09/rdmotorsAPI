@@ -29,7 +29,7 @@ def require_api_key(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         key = request.headers.get("Authorization")
-        if key != f"Bearer {API_KEY}":
+        if key != f"Bearer " + API_KEY:
             return jsonify({"error": "Unauthorized"}), 401
         return f(*args, **kwargs)
     return decorated
