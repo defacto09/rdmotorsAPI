@@ -24,20 +24,23 @@ db_password_escaped = quote_plus(db_password)
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-print(app.config['SQLALCHEMY_DATABASE_URI'])
 db = SQLAlchemy(app)
 
-# Декоратор для перевірки API ключа
+# -------------------
+# 🔑 API KEY middleware
+# -------------------
 def require_api_key(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         key = request.headers.get("Authorization")
-        if key != f"Bearer " + API_KEY:
+        if not key or key != f"Bearer {API_KEY}":
             return jsonify({"error": "Unauthorized"}), 401
         return f(*args, **kwargs)
     return decorated
 
-# Models
+# -------------------
+# 📦 Models
+# -------------------
 class Client(db.Model):
     __tablename__ = "clients"
     client_id = db.Column(db.Integer, primary_key=True)
@@ -64,13 +67,13 @@ class AutoUsa(db.Model):
     __tablename__ = "autousa"
     vin = db.Column(db.String(17), primary_key=True)
     container_number = db.Column(db.String(30))
-    mark = db.Column(db.String(30), nullable=False)
-    model = db.Column(db.String(40), nullable=False)
+    mark = db.Column(db.String(30), nullable=True)   # 👈 тепер nullable
+    model = db.Column(db.String(40), nullable=True)  # 👈 тепер nullable
     loc_now = db.Column(db.String(120))
     loc_next = db.Column(db.String(120))
 
     def to_dict(self):
-        return {"vin": self.vin, "container_number": self.container_number, "mark": self.mark, "model": self.model, "loc_now": self.loc_now, "loc_next": self.loc_next}
+        return {"vin": self.vin, "container_number": self.container_number, "mark": self.mark or "UNKNOWN", "model": self.model or "UNKNOWN", "loc_now": self.loc_now, "loc_next": self.loc_next}
 
 class Car(db.Model):
     __tablename__ = "cars"
@@ -83,23 +86,27 @@ class Car(db.Model):
     def to_dict(self):
         return {"car_id": self.car_id, "mark": self.mark, "model": self.model, "year": self.year, "addi": self.addi}
 
-# Routes
+# -------------------
+# 📍 Routes
+# -------------------
 @app.route("/")
 @require_api_key
 def home():
     return "RD Motors API is running!"
 
+# -------------------
+# 🔹 AUTOU SA
+# -------------------
 @app.route("/autousa", methods=["GET"])
 @require_api_key
 def get_autousa():
     cars = AutoUsa.query.all()
-    print([car.to_dict() for car in cars])  # перевірка у консолі
     return jsonify([car.to_dict() for car in cars])
 
 @app.route("/autousa/<vin>", methods=["GET"])
 @require_api_key
 def get_autousa_by_vin(vin):
-    car = AutoUsa.query.get(vin)
+    car = AutoUsa.query.filter_by(vin=vin).first()   # 👈 замість .get()
     if car:
         return jsonify(car.to_dict())
     return jsonify({"error": "Auto not found"}), 404
@@ -107,23 +114,25 @@ def get_autousa_by_vin(vin):
 @app.route("/autousa/batch", methods=["POST"])
 @require_api_key
 def upsert_autousa_batch():
-    data_list = request.json  # очікуємо список словників авто
+    data_list = request.get_json(silent=True)
+    if not isinstance(data_list, list):
+        return jsonify({"error": "Expected a list of objects"}), 400
+
     updated = 0
     added = 0
 
     for data in data_list:
-        if "vin" not in data:
-            continue  # пропускаємо записи без VIN
+        vin = data.get("vin")
+        if not vin:
+            continue
 
-        car = AutoUsa.query.get(data["vin"])
+        car = AutoUsa.query.filter_by(vin=vin).first()
         if car:
-            # Оновлюємо існуюче авто
             for key, value in data.items():
                 if hasattr(car, key):
                     setattr(car, key, value)
             updated += 1
         else:
-            # Додаємо нове авто
             car = AutoUsa(**data)
             db.session.add(car)
             added += 1
@@ -134,9 +143,13 @@ def upsert_autousa_batch():
 @app.route("/autousa", methods=["POST"])
 @require_api_key
 def add_autousa():
-    data = request.json
-    if AutoUsa.query.get(data["vin"]):
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    if AutoUsa.query.filter_by(vin=data.get("vin")).first():
         return jsonify({"error": "VIN already exists"}), 400
+
     new_car = AutoUsa(**data)
     db.session.add(new_car)
     db.session.commit()
@@ -145,25 +158,35 @@ def add_autousa():
 @app.route("/autousa/<vin>", methods=["PUT"])
 @require_api_key
 def update_autousa(vin):
-    car = AutoUsa.query.get(vin)
+    car = AutoUsa.query.filter_by(vin=vin).first()
     if not car:
         return jsonify({"error": "Auto not found"}), 404
-    data = request.json
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
     for key, value in data.items():
-        setattr(car, key, value)
+        if hasattr(car, key):
+            setattr(car, key, value)
+
     db.session.commit()
     return jsonify(car.to_dict())
 
 @app.route("/autousa/<vin>", methods=["DELETE"])
 @require_api_key
 def delete_autousa(vin):
-    car = AutoUsa.query.get(vin)
+    car = AutoUsa.query.filter_by(vin=vin).first()
     if not car:
         return jsonify({"error": "Auto not found"}), 404
+
     db.session.delete(car)
     db.session.commit()
     return jsonify({"message": "Auto deleted successfully"})
 
+# -------------------
+# 🔹 CARS
+# -------------------
 @app.route("/cars", methods=["GET"])
 @require_api_key
 def get_cars():
@@ -181,7 +204,10 @@ def get_car_by_id(car_id):
 @app.route("/cars", methods=["POST"])
 @require_api_key
 def add_car():
-    data = request.json
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
     new_car = Car(**data)
     db.session.add(new_car)
     db.session.commit()
@@ -193,9 +219,15 @@ def update_car(car_id):
     car = Car.query.get(car_id)
     if not car:
         return jsonify({"error": "Car not found"}), 404
-    data = request.json
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
     for key, value in data.items():
-        setattr(car, key, value)
+        if hasattr(car, key):
+            setattr(car, key, value)
+
     db.session.commit()
     return jsonify(car.to_dict())
 
@@ -205,10 +237,14 @@ def delete_car(car_id):
     car = Car.query.get(car_id)
     if not car:
         return jsonify({"error": "Car not found"}), 404
+
     db.session.delete(car)
     db.session.commit()
     return jsonify({"message": "Car deleted successfully"})
 
+# -------------------
+# 🔹 CLIENTS
+# -------------------
 @app.route("/clients", methods=["GET"])
 @require_api_key
 def get_clients():
@@ -226,9 +262,13 @@ def get_client(client_id):
 @app.route("/clients", methods=["POST"])
 @require_api_key
 def add_client():
-    data = request.json
-    if Client.query.filter_by(email=data["email"]).first():
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    if Client.query.filter_by(email=data.get("email")).first():
         return jsonify({"error": "Email already exists"}), 400
+
     new_client = Client(**data)
     db.session.add(new_client)
     db.session.commit()
@@ -240,9 +280,15 @@ def update_client(client_id):
     client = Client.query.get(client_id)
     if not client:
         return jsonify({"error": "Client not found"}), 404
-    data = request.json
+
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
     for key, value in data.items():
-        setattr(client, key, value)
+        if hasattr(client, key):
+            setattr(client, key, value)
+
     db.session.commit()
     return jsonify(client.to_dict())
 
@@ -252,10 +298,14 @@ def delete_client(client_id):
     client = Client.query.get(client_id)
     if not client:
         return jsonify({"error": "Client not found"}), 404
+
     db.session.delete(client)
     db.session.commit()
     return jsonify({"message": "Client deleted successfully"})
 
+# -------------------
+# 🚀 Run
+# -------------------
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
