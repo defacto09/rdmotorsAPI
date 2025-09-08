@@ -24,7 +24,7 @@ db_password_escaped = quote_plus(db_password)
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-
+print(app.config['SQLALCHEMY_DATABASE_URI'])
 db = SQLAlchemy(app)
 
 # Декоратор для перевірки API ключа
@@ -93,6 +93,7 @@ def home():
 @require_api_key
 def get_autousa():
     cars = AutoUsa.query.all()
+    print([car.to_dict() for car in cars])  # перевірка у консолі
     return jsonify([car.to_dict() for car in cars])
 
 @app.route("/autousa/<vin>", methods=["GET"])
@@ -102,6 +103,33 @@ def get_autousa_by_vin(vin):
     if car:
         return jsonify(car.to_dict())
     return jsonify({"error": "Auto not found"}), 404
+
+@app.route("/autousa/batch", methods=["POST"])
+@require_api_key
+def upsert_autousa_batch():
+    data_list = request.json  # очікуємо список словників авто
+    updated = 0
+    added = 0
+
+    for data in data_list:
+        if "vin" not in data:
+            continue  # пропускаємо записи без VIN
+
+        car = AutoUsa.query.get(data["vin"])
+        if car:
+            # Оновлюємо існуюче авто
+            for key, value in data.items():
+                if hasattr(car, key):
+                    setattr(car, key, value)
+            updated += 1
+        else:
+            # Додаємо нове авто
+            car = AutoUsa(**data)
+            db.session.add(car)
+            added += 1
+
+    db.session.commit()
+    return jsonify({"message": "Batch processed", "updated": updated, "added": added}), 200
 
 @app.route("/autousa", methods=["POST"])
 @require_api_key
