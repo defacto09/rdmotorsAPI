@@ -243,7 +243,7 @@ def delete_client(client_id):
         return jsonify({"error": "Client not found"}), 404
     db.session.delete(client)
     db.session.commit()
-    return jsonify({"message": "Client deleted sucessfully"})
+    return jsonify({"message": "Client deleted successfully"})
 
 if __name__ == "__main__":
     with app.app_context():
