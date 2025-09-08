@@ -66,7 +66,7 @@ class Service(db.Model):
 class AutoUsa(db.Model):
     __tablename__ = "autousa"
     vin = db.Column(db.String(17), primary_key=True)
-    container_number = db.Column(db.String(30))
+    container_number = db.Column(db.String(30), nullable=True)
     mark = db.Column(db.String(30), nullable=True)
     model = db.Column(db.String(40), nullable=True)
     loc_now = db.Column(db.String(120), nullable=True)
@@ -75,11 +75,11 @@ class AutoUsa(db.Model):
     def to_dict(self):
         return {
             "vin": self.vin,
-            "container_number": self.container_number,
+            "container_number": self.container_number or "UNKNOWN",
             "mark": self.mark or "UNKNOWN",
             "model": self.model or "UNKNOWN",
-            "loc_now": self.loc_now,
-            "loc_next": self.loc_next
+            "loc_now": self.loc_now or "",
+            "loc_next": self.loc_next or ""
         }
 
 class Car(db.Model):
@@ -88,10 +88,10 @@ class Car(db.Model):
     mark = db.Column(db.String(30), nullable=False)
     model = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
-    addi = db.Column(db.String(200))
+    addi = db.Column(db.String(200), nullable=True)
 
     def to_dict(self):
-        return {"car_id": self.car_id, "mark": self.mark, "model": self.model, "year": self.year, "addi": self.addi}
+        return {"car_id": self.car_id, "mark": self.mark, "model": self.model, "year": self.year, "addi": self.addi or ""}
 
 # -------------------
 # 📍 Routes
@@ -113,7 +113,7 @@ def get_autousa():
 @app.route("/autousa/<vin>", methods=["GET"])
 @require_api_key
 def get_autousa_by_vin(vin):
-    car = AutoUsa.query.filter_by(vin=vin).first()
+    car = AutoUsa.query.get(vin)
     if car:
         return jsonify(car.to_dict())
     return jsonify({"error": "Auto not found"}), 404
@@ -121,25 +121,26 @@ def get_autousa_by_vin(vin):
 @app.route("/autousa/batch", methods=["POST"])
 @require_api_key
 def upsert_autousa_batch():
-    data_list = request.get_json(silent=True)
+    data_list = request.get_json(force=True)
     if not isinstance(data_list, list):
         return jsonify({"error": "Expected a list of objects"}), 400
 
     updated, added = 0, 0
-
     for data in data_list:
         vin = data.get("vin")
         if not vin:
             continue
 
-        car = AutoUsa.query.filter_by(vin=vin).first()
+        car = AutoUsa.query.get(vin)
         if car:
             for key, value in data.items():
-                if hasattr(car, key):
+                if hasattr(car, key) and value is not None:
                     setattr(car, key, value)
             updated += 1
         else:
-            car = AutoUsa(**data)
+            # Заповнюємо пусті поля порожніми рядками
+            car_data = {k: (v if v is not None else "") for k, v in data.items()}
+            car = AutoUsa(**car_data)
             db.session.add(car)
             added += 1
 
@@ -149,14 +150,16 @@ def upsert_autousa_batch():
 @app.route("/autousa", methods=["POST"])
 @require_api_key
 def add_autousa():
-    data = request.get_json(silent=True)
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
+    data = request.get_json(force=True)
+    if not data or "vin" not in data:
+        return jsonify({"error": "Invalid JSON or missing VIN"}), 400
 
-    if AutoUsa.query.filter_by(vin=data.get("vin")).first():
+    car = AutoUsa.query.get(data["vin"])
+    if car:
         return jsonify({"error": "VIN already exists"}), 400
 
-    new_car = AutoUsa(**data)
+    car_data = {k: (v if v is not None else "") for k, v in data.items()}
+    new_car = AutoUsa(**car_data)
     db.session.add(new_car)
     db.session.commit()
     return jsonify(new_car.to_dict()), 201
@@ -164,16 +167,16 @@ def add_autousa():
 @app.route("/autousa/<vin>", methods=["PUT", "PATCH"])
 @require_api_key
 def update_autousa(vin):
-    car = AutoUsa.query.filter_by(vin=vin).first()
+    car = AutoUsa.query.get(vin)
     if not car:
         return jsonify({"error": "Auto not found"}), 404
 
-    data = request.get_json(silent=True)
+    data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
     for key, value in data.items():
-        if hasattr(car, key):
+        if hasattr(car, key) and value is not None:
             setattr(car, key, value)
 
     db.session.commit()
@@ -182,7 +185,7 @@ def update_autousa(vin):
 @app.route("/autousa/<vin>", methods=["DELETE"])
 @require_api_key
 def delete_autousa(vin):
-    car = AutoUsa.query.filter_by(vin=vin).first()
+    car = AutoUsa.query.get(vin)
     if not car:
         return jsonify({"error": "Auto not found"}), 404
 
@@ -210,7 +213,7 @@ def get_car_by_id(car_id):
 @app.route("/cars", methods=["POST"])
 @require_api_key
 def add_car():
-    data = request.get_json(silent=True)
+    data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
@@ -226,12 +229,12 @@ def update_car(car_id):
     if not car:
         return jsonify({"error": "Car not found"}), 404
 
-    data = request.get_json(silent=True)
+    data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
     for key, value in data.items():
-        if hasattr(car, key):
+        if hasattr(car, key) and value is not None:
             setattr(car, key, value)
 
     db.session.commit()
@@ -268,7 +271,7 @@ def get_client(client_id):
 @app.route("/clients", methods=["POST"])
 @require_api_key
 def add_client():
-    data = request.get_json(silent=True)
+    data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
@@ -287,12 +290,12 @@ def update_client(client_id):
     if not client:
         return jsonify({"error": "Client not found"}), 404
 
-    data = request.get_json(silent=True)
+    data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
     for key, value in data.items():
-        if hasattr(client, key):
+        if hasattr(client, key) and value is not None:
             setattr(client, key, value)
 
     db.session.commit()
