@@ -69,8 +69,8 @@ class AutoUsa(db.Model):
     container_number = db.Column(db.String(30))
     mark = db.Column(db.String(30), nullable=True)
     model = db.Column(db.String(40), nullable=True)
-    loc_now = db.Column(db.String(120))
-    loc_next = db.Column(db.String(120))
+    loc_now = db.Column(db.String(120), nullable=True)
+    loc_next = db.Column(db.String(120), nullable=True)
 
     def to_dict(self):
         return {
