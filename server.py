@@ -147,8 +147,7 @@ def add_autousa():
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
-    if AutoUsa.query.filter_by(vin=data.get("vin")).first():
-        return jsonify({"error": "VIN already exists"}), 400
+
 
     new_car = AutoUsa(**data)
     db.session.add(new_car)
