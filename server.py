@@ -155,7 +155,7 @@ def add_autousa():
     db.session.commit()
     return jsonify(new_car.to_dict()), 201
 
-@app.route("/autousa/<vin>", methods=["PUT"])
+@app.route("/autousa/<vin>", methods=["POST"])
 @require_api_key
 def update_autousa(vin):
     car = AutoUsa.query.filter_by(vin=vin).first()
@@ -213,7 +213,7 @@ def add_car():
     db.session.commit()
     return jsonify(new_car.to_dict()), 201
 
-@app.route("/cars/<int:car_id>", methods=["PUT"])
+@app.route("/cars/<int:car_id>", methods=["POST"])
 @require_api_key
 def update_car(car_id):
     car = Car.query.get(car_id)
@@ -274,7 +274,7 @@ def add_client():
     db.session.commit()
     return jsonify(new_client.to_dict()), 201
 
-@app.route("/clients/<int:client_id>", methods=["PUT"])
+@app.route("/clients/<int:client_id>", methods=["POST"])
 @require_api_key
 def update_client(client_id):
     client = Client.query.get(client_id)
