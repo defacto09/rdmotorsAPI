@@ -176,11 +176,14 @@ def update_autousa(vin):
         return jsonify({"error": "Invalid JSON"}), 400
 
     for key, value in data.items():
+        if key == "vin":  # не оновлюємо primary key
+            continue
         if hasattr(car, key) and value is not None:
             setattr(car, key, value)
 
     db.session.commit()
     return jsonify(car.to_dict())
+
 
 @app.route("/autousa/<vin>", methods=["DELETE"])
 @require_api_key
