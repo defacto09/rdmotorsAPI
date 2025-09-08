@@ -75,9 +75,9 @@ class AutoUsa(db.Model):
     def to_dict(self):
         return {
             "vin": self.vin,
-            "container_number": self.container_number or "UNKNOWN",
-            "mark": self.mark or "UNKNOWN",
-            "model": self.model or "UNKNOWN",
+            "container_number": self.container_number or,
+            "mark": self.mark,
+            "model": self.model,
             "loc_now": self.loc_now or "",
             "loc_next": self.loc_next or ""
         }
