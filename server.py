@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+from urllib.parse import quote_plus
 
 # Завантаження секретів
 load_dotenv()
@@ -19,8 +20,10 @@ db_port = os.getenv("DB_PORT")
 db_name = os.getenv("DB_NAME")
 API_KEY = os.getenv("API_KEY")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
+db_password_escaped = quote_plus(db_password)
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 db = SQLAlchemy(app)
 
