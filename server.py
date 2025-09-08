@@ -67,13 +67,20 @@ class AutoUsa(db.Model):
     __tablename__ = "autousa"
     vin = db.Column(db.String(17), primary_key=True)
     container_number = db.Column(db.String(30))
-    mark = db.Column(db.String(30), nullable=True)   # 👈 тепер nullable
-    model = db.Column(db.String(40), nullable=True)  # 👈 тепер nullable
+    mark = db.Column(db.String(30), nullable=True)
+    model = db.Column(db.String(40), nullable=True)
     loc_now = db.Column(db.String(120))
     loc_next = db.Column(db.String(120))
 
     def to_dict(self):
-        return {"vin": self.vin, "container_number": self.container_number, "mark": self.mark or "UNKNOWN", "model": self.model or "UNKNOWN", "loc_now": self.loc_now, "loc_next": self.loc_next}
+        return {
+            "vin": self.vin,
+            "container_number": self.container_number,
+            "mark": self.mark or "UNKNOWN",
+            "model": self.model or "UNKNOWN",
+            "loc_now": self.loc_now,
+            "loc_next": self.loc_next
+        }
 
 class Car(db.Model):
     __tablename__ = "cars"
@@ -106,7 +113,7 @@ def get_autousa():
 @app.route("/autousa/<vin>", methods=["GET"])
 @require_api_key
 def get_autousa_by_vin(vin):
-    car = AutoUsa.query.filter_by(vin=vin).first()   # 👈 замість .get()
+    car = AutoUsa.query.filter_by(vin=vin).first()
     if car:
         return jsonify(car.to_dict())
     return jsonify({"error": "Auto not found"}), 404
@@ -118,8 +125,7 @@ def upsert_autousa_batch():
     if not isinstance(data_list, list):
         return jsonify({"error": "Expected a list of objects"}), 400
 
-    updated = 0
-    added = 0
+    updated, added = 0, 0
 
     for data in data_list:
         vin = data.get("vin")
@@ -155,7 +161,7 @@ def add_autousa():
     db.session.commit()
     return jsonify(new_car.to_dict()), 201
 
-@app.route("/autousa/<vin>", methods=["POST"])
+@app.route("/autousa/<vin>", methods=["PUT", "PATCH"])
 @require_api_key
 def update_autousa(vin):
     car = AutoUsa.query.filter_by(vin=vin).first()
@@ -213,7 +219,7 @@ def add_car():
     db.session.commit()
     return jsonify(new_car.to_dict()), 201
 
-@app.route("/cars/<int:car_id>", methods=["POST"])
+@app.route("/cars/<int:car_id>", methods=["PUT", "PATCH"])
 @require_api_key
 def update_car(car_id):
     car = Car.query.get(car_id)
@@ -274,7 +280,7 @@ def add_client():
     db.session.commit()
     return jsonify(new_client.to_dict()), 201
 
-@app.route("/clients/<int:client_id>", methods=["POST"])
+@app.route("/clients/<int:client_id>", methods=["PUT", "PATCH"])
 @require_api_key
 def update_client(client_id):
     client = Client.query.get(client_id)
