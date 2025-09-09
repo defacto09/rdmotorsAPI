@@ -10,7 +10,7 @@ from urllib.parse import quote_plus
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
@@ -75,7 +75,7 @@ class AutoUsa(db.Model):
     def to_dict(self):
         return {
             "vin": self.vin,
-            "container_number": self.container_number or,
+            "container_number": self.container_number or "" ,
             "mark": self.mark,
             "model": self.model,
             "loc_now": self.loc_now or "",
