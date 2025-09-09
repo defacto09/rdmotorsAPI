@@ -95,7 +95,7 @@ class Service(db.Model):
 class AutoUsa(db.Model):
     __tablename__ = "autousa"
     id = db.Column(db.Integer, primary_key = True, autoincrement=True)
-    vin = db.Column(db.String(17), primary_key=True)
+    vin = db.Column(db.String(17), unique=True, nullable=False)
     container_number = db.Column(db.String(30), nullable=True)
     mark = db.Column(db.String(30), nullable=True)
     model = db.Column(db.String(40), nullable=True)
