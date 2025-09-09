@@ -94,6 +94,7 @@ class Service(db.Model):
 
 class AutoUsa(db.Model):
     __tablename__ = "autousa"
+    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
     vin = db.Column(db.String(17), primary_key=True)
     container_number = db.Column(db.String(30), nullable=True)
     mark = db.Column(db.String(30), nullable=True)
@@ -131,7 +132,7 @@ def home():
     return "RD Motors API is running!"
 
 # -------------------
-# 🔹 AUTOU SA
+# 🔹 AUTOUSA
 # -------------------
 @app.route("/autousa", methods=["GET"])
 @require_api_key
