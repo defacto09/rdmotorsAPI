@@ -38,6 +38,11 @@ def require_api_key(f):
         return f(*args, **kwargs)
     return decorated
 
+@app.before_request
+def validate_json():
+    if request.method in ['POST', 'PUT', 'PATCH']:
+        if not request.is_json and request.content_type != 'application/json':
+            return jsonify({"error": "Content-Type must be application/json"}), 400
 # -------------------
 # 📦 Models
 # -------------------
