@@ -104,6 +104,7 @@ class AutoUsa(db.Model):
 
     def to_dict(self):
         return {
+            "id": self.id,
             "vin": self.vin,
             "container_number": self.container_number or "" ,
             "mark": self.mark,
