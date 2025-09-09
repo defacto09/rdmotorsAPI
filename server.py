@@ -135,48 +135,177 @@ def home():
 # -------------------
 # 🔹 AUTOUSA
 # -------------------
+from functools import wraps
+from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from dotenv import load_dotenv
+import os
+from urllib.parse import quote_plus
+
+# Завантаження секретів
+load_dotenv()
+
+app = Flask(__name__)
+CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
+
+# Параметри бази даних
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_host = os.getenv("DB_HOST")
+db_port = os.getenv("DB_PORT")
+db_name = os.getenv("DB_NAME")
+API_KEY = os.getenv("API_KEY")
+
+db_password_escaped = quote_plus(db_password)
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+from werkzeug.exceptions import HTTPException
+import traceback
+
+# -------------------
+# 🌍 Global error handler
+# -------------------
+@app.errorhandler(Exception)
+def handle_exception(e):
+    if isinstance(e, HTTPException):
+        return jsonify({"error": e.name, "description": e.description, "code": e.code}), e.code
+
+    return jsonify({"error": "Internal Server Error", "description": str(e), "trace": traceback.format_exc() if app.debug else None}), 500
+
+# -------------------
+# 🔑 API KEY middleware
+# -------------------
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        key = request.headers.get("Authorization")
+        if not key or key != f"Bearer {API_KEY}":
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+@app.before_request
+def validate_json():
+    if request.method in ['POST', 'PUT', 'PATCH']:
+        if not request.is_json and request.content_type != 'application/json':
+            return jsonify({"error": "Content-Type must be application/json"}), 400
+
+# -------------------
+# 📦 Models
+# -------------------
+from functools import wraps
+from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from dotenv import load_dotenv
+import os
+from urllib.parse import quote_plus
+
+# Завантаження секретів
+load_dotenv()
+
+app = Flask(__name__)
+CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
+
+# Параметри бази даних
+db_user = os.getenv("DB_USER")
+db_password = os.getenv("DB_PASSWORD")
+db_host = os.getenv("DB_HOST")
+db_port = os.getenv("DB_PORT")
+db_name = os.getenv("DB_NAME")
+API_KEY = os.getenv("API_KEY")
+
+db_password_escaped = quote_plus(db_password)
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+from werkzeug.exceptions import HTTPException
+import traceback
+
+# -------------------
+# 🌍 Global error handler
+# -------------------
+@app.errorhandler(Exception)
+def handle_exception(e):
+    if isinstance(e, HTTPException):
+        return jsonify({"error": e.name, "description": e.description, "code": e.code}), e.code
+
+    return jsonify({"error": "Internal Server Error", "description": str(e), "trace": traceback.format_exc() if app.debug else None}), 500
+
+# -------------------
+# 🔑 API KEY middleware
+# -------------------
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        key = request.headers.get("Authorization")
+        if not key or key != f"Bearer {API_KEY}":
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+@app.before_request
+def validate_json():
+    if request.method in ['POST', 'PUT', 'PATCH']:
+        if not request.is_json and request.content_type != 'application/json':
+            return jsonify({"error": "Content-Type must be application/json"}), 400
+
+# -------------------
+# 📦 Models
+# -------------------
+class AutoUsa(db.Model):
+    __tablename__ = "autousa"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    vin = db.Column(db.String(17), unique=True, nullable=False)
+    container_number = db.Column(db.String(30), nullable=True)
+    mark = db.Column(db.String(30), nullable=True)
+    model = db.Column(db.String(40), nullable=True)
+    loc_now = db.Column(db.String(120), nullable=True)
+    loc_next = db.Column(db.String(120), nullable=True)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "vin": self.vin,
+            "container_number": self.container_number or "",
+            "mark": self.mark,
+            "model": self.model,
+            "loc_now": self.loc_now or "",
+            "loc_next": self.loc_next or ""
+        }
+
+# -------------------
+# 🔹 AUTOUSA ROUTES (по ID)
+# -------------------
 @app.route("/autousa", methods=["GET"])
 @require_api_key
 def get_autousa():
     cars = AutoUsa.query.all()
     return jsonify([car.to_dict() for car in cars])
 
-@app.route("/autousa/<vin>", methods=["GET"])
+@app.route("/autousa/id/<int:car_id>", methods=["GET"])
 @require_api_key
-def get_autousa_by_vin(vin):
-    car = AutoUsa.query.get(vin)
+def get_autousa_by_id(car_id):
+    car = AutoUsa.query.get(car_id)
     if car:
         return jsonify(car.to_dict())
     return jsonify({"error": "Auto not found"}), 404
 
-@app.route("/autousa/batch", methods=["POST"])
+@app.route("/autousa/id/<int:car_id>", methods=["DELETE"])
 @require_api_key
-def upsert_autousa_batch():
-    data_list = request.get_json(force=True)
-    if not isinstance(data_list, list):
-        return jsonify({"error": "Expected a list of objects"}), 400
-
-    updated, added = 0, 0
-    for data in data_list:
-        vin = data.get("vin")
-        if not vin:
-            continue
-
-        car = AutoUsa.query.get(vin)
-        if car:
-            for key, value in data.items():
-                if hasattr(car, key) and value is not None:
-                    setattr(car, key, value)
-            updated += 1
-        else:
-            # Заповнюємо пусті поля порожніми рядками
-            car_data = {k: (v if v is not None else "") for k, v in data.items()}
-            car = AutoUsa(**car_data)
-            db.session.add(car)
-            added += 1
-
+def delete_autousa_by_id(car_id):
+    car = AutoUsa.query.get(car_id)
+    if not car:
+        return jsonify({"error": "Auto not found"}), 404
+    db.session.delete(car)
     db.session.commit()
-    return jsonify({"message": "Batch processed", "updated": updated, "added": added}), 200
+    return jsonify({"message": "Auto deleted successfully"})
 
 @app.route("/autousa", methods=["POST"])
 @require_api_key
@@ -185,8 +314,7 @@ def add_autousa():
     if not data or "vin" not in data:
         return jsonify({"error": "Invalid JSON or missing VIN"}), 400
 
-    car = AutoUsa.query.get(data["vin"])
-    if car:
+    if AutoUsa.query.filter_by(vin=data["vin"]).first():
         return jsonify({"error": "VIN already exists"}), 400
 
     car_data = {k: (v if v is not None else "") for k, v in data.items()}
@@ -195,10 +323,10 @@ def add_autousa():
     db.session.commit()
     return jsonify(new_car.to_dict()), 201
 
-@app.route("/autousa/<vin>", methods=["PUT", "PATCH"])
+@app.route("/autousa/id/<int:car_id>", methods=["PUT", "PATCH"])
 @require_api_key
-def update_autousa(vin):
-    car = AutoUsa.query.get(vin)
+def update_autousa_by_id(car_id):
+    car = AutoUsa.query.get(car_id)
     if not car:
         return jsonify({"error": "Auto not found"}), 404
 
@@ -212,18 +340,6 @@ def update_autousa(vin):
 
     db.session.commit()
     return jsonify(car.to_dict())
-
-
-@app.route("/autousa/<vin>", methods=["DELETE"])
-@require_api_key
-def delete_autousa(vin):
-    car = AutoUsa.query.get(vin)
-    if not car:
-        return jsonify({"error": "Auto not found"}), 404
-
-    db.session.delete(car)
-    db.session.commit()
-    return jsonify({"message": "Auto deleted successfully"})
 
 # -------------------
 # 🔹 CARS
