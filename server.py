@@ -5,6 +5,8 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 from urllib.parse import quote_plus
+from werkzeug.exceptions import HTTPException
+import traceback
 
 # Завантаження секретів
 load_dotenv()
@@ -14,41 +16,25 @@ CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
-db_password = os.getenv("DB_PASSWORD")
+db_password = quote_plus(os.getenv("DB_PASSWORD"))
 db_host = os.getenv("DB_HOST")
 db_port = os.getenv("DB_PORT")
 db_name = os.getenv("DB_NAME")
 API_KEY = os.getenv("API_KEY")
 
-db_password_escaped = quote_plus(db_password)
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-
-from werkzeug.exceptions import HTTPException
-import traceback
 
 # -------------------
 # 🌍 Global error handler
 # -------------------
 @app.errorhandler(Exception)
 def handle_exception(e):
-    # Якщо це HTTPException (наприклад 404, 405) – віддати у JSON
     if isinstance(e, HTTPException):
-        return jsonify({
-            "error": e.name,
-            "description": e.description,
-            "code": e.code
-        }), e.code
-
-    # Якщо це інша помилка – 500
-    return jsonify({
-        "error": "Internal Server Error",
-        "description": str(e),
-        "trace": traceback.format_exc() if app.debug else None
-    }), 500
-
+        return jsonify({"error": e.name, "description": e.description, "code": e.code}), e.code
+    return jsonify({"error": "Internal Server Error", "description": str(e), "trace": traceback.format_exc() if app.debug else None}), 500
 
 # -------------------
 # 🔑 API KEY middleware
@@ -67,6 +53,7 @@ def validate_json():
     if request.method in ['POST', 'PUT', 'PATCH']:
         if not request.is_json and request.content_type != 'application/json':
             return jsonify({"error": "Content-Type must be application/json"}), 400
+
 # -------------------
 # 📦 Models
 # -------------------
@@ -94,7 +81,7 @@ class Service(db.Model):
 
 class AutoUsa(db.Model):
     __tablename__ = "autousa"
-    id = db.Column(db.Integer, primary_key = True, autoincrement=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     vin = db.Column(db.String(17), unique=True, nullable=False)
     container_number = db.Column(db.String(30), nullable=True)
     mark = db.Column(db.String(30), nullable=True)
@@ -106,7 +93,7 @@ class AutoUsa(db.Model):
         return {
             "id": self.id,
             "vin": self.vin,
-            "container_number": self.container_number or "" ,
+            "container_number": self.container_number or "",
             "mark": self.mark,
             "model": self.model,
             "loc_now": self.loc_now or "",
@@ -132,157 +119,7 @@ class Car(db.Model):
 def home():
     return "RD Motors API is running!"
 
-# -------------------
-# 🔹 AUTOUSA
-# -------------------
-from functools import wraps
-from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
-from dotenv import load_dotenv
-import os
-from urllib.parse import quote_plus
-
-# Завантаження секретів
-load_dotenv()
-
-app = Flask(__name__)
-CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
-
-# Параметри бази даних
-db_user = os.getenv("DB_USER")
-db_password = os.getenv("DB_PASSWORD")
-db_host = os.getenv("DB_HOST")
-db_port = os.getenv("DB_PORT")
-db_name = os.getenv("DB_NAME")
-API_KEY = os.getenv("API_KEY")
-
-db_password_escaped = quote_plus(db_password)
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-from werkzeug.exceptions import HTTPException
-import traceback
-
-# -------------------
-# 🌍 Global error handler
-# -------------------
-@app.errorhandler(Exception)
-def handle_exception(e):
-    if isinstance(e, HTTPException):
-        return jsonify({"error": e.name, "description": e.description, "code": e.code}), e.code
-
-    return jsonify({"error": "Internal Server Error", "description": str(e), "trace": traceback.format_exc() if app.debug else None}), 500
-
-# -------------------
-# 🔑 API KEY middleware
-# -------------------
-def require_api_key(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        key = request.headers.get("Authorization")
-        if not key or key != f"Bearer {API_KEY}":
-            return jsonify({"error": "Unauthorized"}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-@app.before_request
-def validate_json():
-    if request.method in ['POST', 'PUT', 'PATCH']:
-        if not request.is_json and request.content_type != 'application/json':
-            return jsonify({"error": "Content-Type must be application/json"}), 400
-
-# -------------------
-# 📦 Models
-# -------------------
-from functools import wraps
-from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
-from dotenv import load_dotenv
-import os
-from urllib.parse import quote_plus
-
-# Завантаження секретів
-load_dotenv()
-
-app = Flask(__name__)
-CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
-
-# Параметри бази даних
-db_user = os.getenv("DB_USER")
-db_password = os.getenv("DB_PASSWORD")
-db_host = os.getenv("DB_HOST")
-db_port = os.getenv("DB_PORT")
-db_name = os.getenv("DB_NAME")
-API_KEY = os.getenv("API_KEY")
-
-db_password_escaped = quote_plus(db_password)
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-from werkzeug.exceptions import HTTPException
-import traceback
-
-# -------------------
-# 🌍 Global error handler
-# -------------------
-@app.errorhandler(Exception)
-def handle_exception(e):
-    if isinstance(e, HTTPException):
-        return jsonify({"error": e.name, "description": e.description, "code": e.code}), e.code
-
-    return jsonify({"error": "Internal Server Error", "description": str(e), "trace": traceback.format_exc() if app.debug else None}), 500
-
-# -------------------
-# 🔑 API KEY middleware
-# -------------------
-def require_api_key(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        key = request.headers.get("Authorization")
-        if not key or key != f"Bearer {API_KEY}":
-            return jsonify({"error": "Unauthorized"}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-@app.before_request
-def validate_json():
-    if request.method in ['POST', 'PUT', 'PATCH']:
-        if not request.is_json and request.content_type != 'application/json':
-            return jsonify({"error": "Content-Type must be application/json"}), 400
-
-# -------------------
-# 📦 Models
-# -------------------
-class AutoUsa(db.Model):
-    __tablename__ = "autousa"
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    vin = db.Column(db.String(17), unique=True, nullable=False)
-    container_number = db.Column(db.String(30), nullable=True)
-    mark = db.Column(db.String(30), nullable=True)
-    model = db.Column(db.String(40), nullable=True)
-    loc_now = db.Column(db.String(120), nullable=True)
-    loc_next = db.Column(db.String(120), nullable=True)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "vin": self.vin,
-            "container_number": self.container_number or "",
-            "mark": self.mark,
-            "model": self.model,
-            "loc_now": self.loc_now or "",
-            "loc_next": self.loc_next or ""
-        }
-
-# -------------------
-# 🔹 AUTOUSA ROUTES (по ID)
-# -------------------
+# AUTOUSA ROUTES
 @app.route("/autousa", methods=["GET"])
 @require_api_key
 def get_autousa():
@@ -313,10 +150,8 @@ def add_autousa():
     data = request.get_json(force=True)
     if not data or "vin" not in data:
         return jsonify({"error": "Invalid JSON or missing VIN"}), 400
-
     if AutoUsa.query.filter_by(vin=data["vin"]).first():
         return jsonify({"error": "VIN already exists"}), 400
-
     car_data = {k: (v if v is not None else "") for k, v in data.items()}
     new_car = AutoUsa(**car_data)
     db.session.add(new_car)
@@ -329,136 +164,14 @@ def update_autousa_by_id(car_id):
     car = AutoUsa.query.get(car_id)
     if not car:
         return jsonify({"error": "Auto not found"}), 404
-
     data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
-
     for key, value in data.items():
         if hasattr(car, key) and value is not None:
             setattr(car, key, value)
-
     db.session.commit()
     return jsonify(car.to_dict())
-
-# -------------------
-# 🔹 CARS
-# -------------------
-@app.route("/cars", methods=["GET"])
-@require_api_key
-def get_cars():
-    cars = Car.query.all()
-    return jsonify([car.to_dict() for car in cars])
-
-@app.route("/cars/<int:car_id>", methods=["GET"])
-@require_api_key
-def get_car_by_id(car_id):
-    car = Car.query.get(car_id)
-    if car:
-        return jsonify(car.to_dict())
-    return jsonify({"error": "Car not found"}), 404
-
-@app.route("/cars", methods=["POST"])
-@require_api_key
-def add_car():
-    data = request.get_json(force=True)
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
-
-    new_car = Car(**data)
-    db.session.add(new_car)
-    db.session.commit()
-    return jsonify(new_car.to_dict()), 201
-
-@app.route("/cars/<int:car_id>", methods=["PUT", "PATCH"])
-@require_api_key
-def update_car(car_id):
-    car = Car.query.get(car_id)
-    if not car:
-        return jsonify({"error": "Car not found"}), 404
-
-    data = request.get_json(force=True)
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
-
-    for key, value in data.items():
-        if hasattr(car, key) and value is not None:
-            setattr(car, key, value)
-
-    db.session.commit()
-    return jsonify(car.to_dict())
-
-@app.route("/cars/<int:car_id>", methods=["DELETE"])
-@require_api_key
-def delete_car(car_id):
-    car = Car.query.get(car_id)
-    if not car:
-        return jsonify({"error": "Car not found"}), 404
-
-    db.session.delete(car)
-    db.session.commit()
-    return jsonify({"message": "Car deleted successfully"})
-
-# -------------------
-# 🔹 CLIENTS
-# -------------------
-@app.route("/clients", methods=["GET"])
-@require_api_key
-def get_clients():
-    clients = Client.query.all()
-    return jsonify([client.to_dict() for client in clients])
-
-@app.route("/clients/<int:client_id>", methods=["GET"])
-@require_api_key
-def get_client(client_id):
-    client = Client.query.get(client_id)
-    if client:
-        return jsonify(client.to_dict())
-    return jsonify({"error": "Client not found"}), 404
-
-@app.route("/clients", methods=["POST"])
-@require_api_key
-def add_client():
-    data = request.get_json(force=True)
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
-
-    if Client.query.filter_by(email=data.get("email")).first():
-        return jsonify({"error": "Email already exists"}), 400
-
-    new_client = Client(**data)
-    db.session.add(new_client)
-    db.session.commit()
-    return jsonify(new_client.to_dict()), 201
-
-@app.route("/clients/<int:client_id>", methods=["PUT", "PATCH"])
-@require_api_key
-def update_client(client_id):
-    client = Client.query.get(client_id)
-    if not client:
-        return jsonify({"error": "Client not found"}), 404
-
-    data = request.get_json(force=True)
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
-
-    for key, value in data.items():
-        if hasattr(client, key) and value is not None:
-            setattr(client, key, value)
-
-    db.session.commit()
-    return jsonify(client.to_dict())
-
-@app.route("/clients/<int:client_id>", methods=["DELETE"])
-@require_api_key
-def delete_client(client_id):
-    client = Client.query.get(client_id)
-    if not client:
-        return jsonify({"error": "Client not found"}), 404
-
-    db.session.delete(client)
-    db.session.commit()
-    return jsonify({"message": "Client deleted successfully"})
 
 # -------------------
 # 🚀 Run
