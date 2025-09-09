@@ -88,6 +88,39 @@ class AutoUsa(db.Model):
             "loc_now": self.loc_now or "",
             "loc_next": self.loc_next or ""
         }
+class Client(db.Model):
+    __tablename__ = "clients"
+    client_id = db.Column(db.Integer, primary_key=True)
+    login = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(50), nullable=False, unique=True)
+    number = db.Column(db.String(20), nullable=False)
+    status = db.Column(db.String(20), nullable=False)
+
+    def to_dict(self):
+        return {
+            "client_id": self.client_id,
+            "login": self.login,
+            "email": self.email,
+            "number": self.number,
+            "status": self.status
+        }
+
+class Car(db.Model):
+    __tablename__ = "cars"
+    car_id = db.Column(db.Integer, primary_key=True)
+    mark = db.Column(db.String(30), nullable=False)
+    model = db.Column(db.String(50), nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    addi = db.Column(db.String(200), nullable=True)
+
+    def to_dict(self):
+        return {
+            "car_id": self.car_id,
+            "mark": self.mark,
+            "model": self.model,
+            "year": self.year,
+            "addi": self.addi or ""
+        }
 
 # -------------------
 # 🔹 AUTOUSA ROUTES (по ID)
