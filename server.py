@@ -26,6 +26,30 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+from werkzeug.exceptions import HTTPException
+import traceback
+
+# -------------------
+# 🌍 Global error handler
+# -------------------
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Якщо це HTTPException (наприклад 404, 405) – віддати у JSON
+    if isinstance(e, HTTPException):
+        return jsonify({
+            "error": e.name,
+            "description": e.description,
+            "code": e.code
+        }), e.code
+
+    # Якщо це інша помилка – 500
+    return jsonify({
+        "error": "Internal Server Error",
+        "description": str(e),
+        "trace": traceback.format_exc() if app.debug else None
+    }), 500
+
+
 # -------------------
 # 🔑 API KEY middleware
 # -------------------
