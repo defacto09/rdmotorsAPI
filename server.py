@@ -68,6 +68,77 @@ def validate_json():
 # -------------------
 # 📦 Models
 # -------------------
+class Service(db.Model):
+    __tablename__ = "services"
+    service_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    descr = db.Column(db.String(500), nullable=False)
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+    currency = db.Column(db.String(3), nullable=False)
+
+    def to_dict(self):
+        return {
+            "service_id": self.service_id,
+            "name": self.name,
+            "descr": self.descr,
+            "price": float(self.price),
+            "currency": self.currency
+        }
+@app.route("/services", methods=["GET"])
+@require_api_key
+def get_services():
+    services = Service.query.all()
+    return jsonify([service.to_dict() for service in services])
+
+@app.route("/services/<int:service_id>", methods=["GET"])
+@require_api_key
+def get_service_by_id(service_id):
+    service = Service.query.get(service_id)
+    if service:
+        return jsonify(service.to_dict())
+    return jsonify({"error": "Service not found"}), 404
+
+@app.route("/services", methods=["POST"])
+@require_api_key
+def add_service():
+    data = request.get_json(force=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    new_service = Service(**data)
+    db.session.add(new_service)
+    db.session.commit()
+    return jsonify(new_service.to_dict()), 201
+
+@app.route("/services/<int:service_id>", methods=["PUT", "PATCH"])
+@require_api_key
+def update_service(service_id):
+    service = Service.query.get(service_id)
+    if not service:
+        return jsonify({"error": "Service not found"}), 404
+
+    data = request.get_json(force=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    for key, value in data.items():
+        if hasattr(service, key) and value is not None:
+            setattr(service, key, value)
+
+    db.session.commit()
+    return jsonify(service.to_dict())
+
+@app.route("/services/<int:service_id>", methods=["DELETE"])
+@require_api_key
+def delete_service(service_id):
+    service = Service.query.get(service_id)
+    if not service:
+        return jsonify({"error": "Service not found"}), 404
+
+    db.session.delete(service)
+    db.session.commit()
+    return jsonify({"message": "Service deleted successfully"})
+
 class AutoUsa(db.Model):
     __tablename__ = "autousa"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
