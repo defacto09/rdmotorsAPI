@@ -228,7 +228,7 @@ def delete_autousa_by_id(car_id):
         return jsonify({"error": "Auto not found"}), 404
     db.session.delete(car)
     db.session.commit()
-    return jsonify({"message": "Auto deleted succesfully"})
+    return jsonify({"message": "Auto deleted successfully"})
 
 @app.route("/autousa", methods=["POST"])
 @require_api_key
