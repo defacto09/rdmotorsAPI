@@ -188,6 +188,8 @@ class Car(db.Model):
     fuel_type = db.Column(db.String(30), nullable=False)
     price = db.Column(db.Integer, nullable=False)
     discount = db.Column(db.Integer, nullable=False)
+    quality = db.Column(db.Integer, nullable=False)
+    engine = db.Column(db.String, nullable=False)
 
     def to_dict(self):
         return {
@@ -200,7 +202,9 @@ class Car(db.Model):
             "mileage": self.mileage,
             "fuel_type": self.fuel_type,
             "price": float(self.price),
-            "discount": float(self.discount)
+            "discount": float(self.discount),
+            "engine": self.engine,
+            "quality": self.quality
         }
 
 # -------------------
