@@ -182,7 +182,12 @@ class Car(db.Model):
     mark = db.Column(db.String(30), nullable=False)
     model = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
-    addi = db.Column(db.String(200), nullable=True)
+    addi = db.Column(db.String(200), nullable=False)
+    transmission = db.Column(db.String(30), nullable=False)
+    mileage = db.Column(db.Integer, nullable=False)
+    fuel_type = db.Column(db.String(30), nullable=False)
+    price = db.Column(db.Integer, nullable=False)
+    discount = db.Column(db.Integer, nullable=False)
 
     def to_dict(self):
         return {
@@ -190,7 +195,12 @@ class Car(db.Model):
             "mark": self.mark,
             "model": self.model,
             "year": self.year,
-            "addi": self.addi or ""
+            "addi": self.addi,
+            "transmission": self.transmission,
+            "mileage": self.mileage,
+            "fuel_type": self.fuel_type,
+            "price": float.price,
+            "discount": float.discount
         }
 
 # -------------------
