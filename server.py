@@ -199,8 +199,8 @@ class Car(db.Model):
             "transmission": self.transmission,
             "mileage": self.mileage,
             "fuel_type": self.fuel_type,
-            "price": float.price,
-            "discount": float.discount
+            "price": float(self.price),
+            "discount": float(self.discount)
         }
 
 # -------------------
