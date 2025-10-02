@@ -79,7 +79,7 @@ class Service(db.Model):
     descr = db.Column(db.String(500), nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)
     currency = db.Column(db.String(3), nullable=False)
-    url = db.Column(db.String(255), nullable=False)
+    photo_filename = db.Column(db.String(255), nullable=False)
 
     def to_dict(self):
         return {
