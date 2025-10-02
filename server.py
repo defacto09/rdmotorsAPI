@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+from flask import url_for
 from urllib.parse import quote_plus
 
 # Завантаження секретів
@@ -28,6 +29,9 @@ db = SQLAlchemy(app)
 
 from werkzeug.exceptions import HTTPException
 import traceback
+
+def get_photo_url(filename):
+    return url_for('static', filename=f'photos/{filename}', _external=True)
 
 # -------------------
 # 🌍 Global error handler
@@ -75,6 +79,7 @@ class Service(db.Model):
     descr = db.Column(db.String(500), nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)
     currency = db.Column(db.String(3), nullable=False)
+    url = db.Column(db.String(255), nullable=False)
 
     def to_dict(self):
         return {
@@ -82,7 +87,8 @@ class Service(db.Model):
             "name": self.name,
             "descr": self.descr,
             "price": float(self.price),
-            "currency": self.currency
+            "currency": self.currency,
+            "url": get_photo_url(self.photo_filename) if self.photo_filename else None
         }
 @app.route("/services", methods=["GET"])
 @require_api_key
