@@ -10,7 +10,7 @@ from urllib.parse import quote_plus
 # Завантаження секретів
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 
 # Параметри бази даних
