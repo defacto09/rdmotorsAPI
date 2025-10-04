@@ -6,12 +6,18 @@ from dotenv import load_dotenv
 import os
 from flask import url_for
 from urllib.parse import quote_plus
+from flask import Flask, send_from_directory
 
 # Завантаження секретів
 load_dotenv()
 
 app = Flask(__name__, static_folder='static')
 CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
+PHOTOS_DIR = os.path.join(os.getcwd(), 'static/photos')
+
+@app.route('/photos/<path:filename>')
+def serve_photo(filename):
+    return send_from_directory(PHOTOS_DIR, filename)
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
