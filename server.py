@@ -13,11 +13,15 @@ load_dotenv()
 
 app = Flask(__name__, static_folder='static')
 CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
-PHOTOS_DIR = os.path.join(os.getcwd(), 'static/photos')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PHOTOS_DIR = os.path.join(BASE_DIR, "static", "photos", "services")
 
-@app.route('/photos/<path:filename>')
+@app.route('/photos/services/<path:filename>')
 def serve_photo(filename):
     return send_from_directory(PHOTOS_DIR, filename)
+
+def get_photo_url(filename):
+    return f"http://193.169.188.220:5000/photos/services/{filename}"
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
