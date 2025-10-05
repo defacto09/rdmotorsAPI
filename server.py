@@ -7,6 +7,7 @@ import os
 from flask import url_for
 from urllib.parse import quote_plus
 from flask import Flask, send_from_directory
+from datetime import datetime
 
 # Завантаження секретів
 load_dotenv()
@@ -44,6 +45,14 @@ def get_service_photo_url(filename):
     if not filename:
         return None
     return f"http://193.169.188.220:5000/static/photos/services/{filename}"
+
+def parse_date(date_str):
+    if date_str:
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+    return None
 
 # -------------------
 # 🌍 Global error handler
@@ -240,25 +249,28 @@ def update_autousa_by_id(car_id):
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
-    # Додаємо історію, якщо змінюється loc_now_id
+    # Оновлення поточної локації і додавання попередньої в історію
     new_loc_now_id = data.get("loc_now_id")
-    if "loc_now_id" in data and data["loc_now_id"] != car.loc_now_id:
-        if car.loc_now_id is not None:  # беремо стару локацію
-            history_record = AutoUsaHistory(
+    if new_loc_now_id is not None and new_loc_now_id != car.loc_now_id:
+        if car.loc_now_id is not None:
+            last_history = AutoUsaHistory(
                 autousa_id=car.id,
                 loc_id=car.loc_now_id,
                 arrival_date=car.arrival_date,
                 departure_date=car.departure_date
             )
-            db.session.add(history_record)
-        car.loc_now_id = data["loc_now_id"]
+            db.session.add(last_history)
 
-    # Оновлюємо loc_next_id
+        car.loc_now_id = new_loc_now_id
+        car.arrival_date = parse_date(data.get("arrival_date")) or car.arrival_date
+        car.departure_date = parse_date(data.get("departure_date")) or car.departure_date
+
+    # loc_next_id
     if "loc_next_id" in data:
         car.loc_next_id = data["loc_next_id"]
 
     # Інші поля
-    for key in ["vin", "container_number", "mark", "model", "arrival_date", "departure_date"]:
+    for key in ["vin", "container_number", "mark", "model"]:
         if key in data and data[key] is not None:
             setattr(car, key, data[key])
 
@@ -272,16 +284,31 @@ def get_autousa_history(car_id):
     if not car:
         return jsonify({"error": "Auto not found"}), 404
 
-    history = [
-        {
+    history = []
+
+    # Записи з історії
+    for h in car.history:
+        history.append({
             "loc_id": h.loc_id,
-            "location_name": h.location.country if h.location else "",
+            "location_name": f"{h.location.country} - {h.location.description}" if h.location else "",
             "arrival_date": str(h.arrival_date) if h.arrival_date else "",
             "departure_date": str(h.departure_date) if h.departure_date else ""
-        }
-        for h in car.history
-    ]
+        })
+
+    # Поточна локація
+    if car.loc_now_id:
+        history.append({
+            "loc_id": car.loc_now_id,
+            "location_name": f"{car.loc_now.country} - {car.loc_now.description}" if car.loc_now else "",
+            "arrival_date": str(car.arrival_date) if car.arrival_date else "",
+            "departure_date": str(car.departure_date) if car.departure_date else None
+        })
+
+    # Сортування по arrival_date
+    history.sort(key=lambda x: x["arrival_date"] or "9999-12-31")
+
     return jsonify(history)
+
 
 #
 # CLIENT
