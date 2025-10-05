@@ -185,8 +185,8 @@ class AutoUsa(db.Model):
             "container_number": self.container_number or "",
             "mark": self.mark,
             "model": self.model,
-            "loc_now": self.loc_now.country if self.loc_now else "",
-            "loc_next": self.loc_next.country if self.loc_next else "",
+            "loc_now": f"{self.loc_now.country} - {self.loc_now.description}" if self.loc_now else "",
+            "loc_next": f"{self.loc_next.country} - {self.loc_next.description}" if self.loc_next else "",
             "arrival_date": str(self.arrival_date) if self.arrival_date else "",
             "departure_date": str(self.departure_date) if self.departure_date else ""
         }
