@@ -285,6 +285,18 @@ def update_autousa_by_id(car_id):
 
     return jsonify(car.to_dict())
 
+@app.route("/autousa/vin/<string:vin>", methods=["GET"])
+@require_api_key
+def get_autousa_by_vin(vin):
+    """
+    Отримати інформацію про авто по VIN.
+    """
+    car = AutoUsa.query.filter_by(vin=vin).first()
+    if not car:
+        return jsonify({"error": "Auto not found"}), 404
+
+    return jsonify(car.to_dict()), 200
+
 @app.route("/autousa/vin/<string:vin>", methods=["PUT", "PATCH"])
 @require_api_key
 def update_autousa_by_vin(vin):
