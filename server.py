@@ -155,15 +155,27 @@ def delete_service(service_id):
     db.session.commit()
     return jsonify({"message": "Service deleted successfully"})
 
+@app.route("/locations", methods=["GET"])
+def get_locations():
+    locations = Location.query.all()
+    return jsonify([loc.to_dict() for loc in locations])
+
 class AutoUsa(db.Model):
     __tablename__ = "autousa"
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     vin = db.Column(db.String(17), unique=True, nullable=False)
     container_number = db.Column(db.String(30), nullable=True)
     mark = db.Column(db.String(30), nullable=True)
     model = db.Column(db.String(40), nullable=True)
-    loc_now = db.Column(db.String(120), nullable=True)
-    loc_next = db.Column(db.String(120), nullable=True)
+
+    loc_now_id = db.Column(db.Integer, db.ForeignKey('locations.location_id'), nullable=True)
+    loc_next_id = db.Column(db.Integer, db.ForeignKey('locations.location_id'), nullable=True)
+    arrival_date = db.Column(db.Date, nullable=True)
+    departure_date = db.Column(db.Date, nullable=True)
+
+    loc_now = db.relationship("Location", foreign_keys=[loc_now_id])
+    loc_next = db.relationship("Location", foreign_keys=[loc_next_id])
 
     def to_dict(self):
         return {
@@ -172,9 +184,29 @@ class AutoUsa(db.Model):
             "container_number": self.container_number or "",
             "mark": self.mark,
             "model": self.model,
-            "loc_now": self.loc_now or "",
-            "loc_next": self.loc_next or ""
+            "loc_now": self.loc_now.name if self.loc_now else "",
+            "loc_next": self.loc_next.name if self.loc_next else "",
+            "arrival_date": str(self.arrival_date) if self.arrival_date else "",
+            "departure_date": str(self.departure_date) if self.departure_date else ""
         }
+
+class Location(db.Model):
+    __tablename__ = "locations"
+    location_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    country = db.Column(db.String(50))
+    description = db.Column(db.String(255))
+
+    def to_dict(self):
+        return {
+            "location_id": self.location_id,
+            "country": self.country,
+            "description": self.description
+        }
+@app.route("/locations", methods=["GET"])
+def get_locations():
+    locations = Location.query.all()
+    return jsonify([loc.to_dict() for loc in locations])
+
 class Client(db.Model):
     __tablename__ = "clients"
     client_id = db.Column(db.Integer, primary_key=True)
