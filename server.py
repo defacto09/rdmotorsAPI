@@ -227,7 +227,7 @@ class AutoUsaHistory(db.Model):
     departure_date = db.Column(db.Date, nullable=True)
 
     autousa = db.relationship("AutoUsa", backref="history")
-    location = db.relationship("Location")
+    location = db.relationship("Location", foreign_keys=[loc_id])
 
 @app.route("/autousa/id/<int:car_id>", methods=["PUT", "PATCH"])
 @require_api_key
@@ -242,15 +242,16 @@ def update_autousa_by_id(car_id):
 
     # Додаємо історію, якщо змінюється loc_now_id
     new_loc_now_id = data.get("loc_now_id")
-    if new_loc_now_id is not None and new_loc_now_id != car.loc_now_id:
-        history_record = AutoUsaHistory(
-            autousa_id=car.id,
-            loc_id=car.loc_now_id or new_loc_now_id,  # якщо None, ставимо нову
-            arrival_date=car.arrival_date,
-            departure_date=car.departure_date
-        )
-        db.session.add(history_record)
-        car.loc_now_id = new_loc_now_id
+    if "loc_now_id" in data and data["loc_now_id"] != car.loc_now_id:
+        if car.loc_now_id is not None:  # беремо стару локацію
+            history_record = AutoUsaHistory(
+                autousa_id=car.id,
+                loc_id=car.loc_now_id,
+                arrival_date=car.arrival_date,
+                departure_date=car.departure_date
+            )
+            db.session.add(history_record)
+        car.loc_now_id = data["loc_now_id"]
 
     # Оновлюємо loc_next_id
     if "loc_next_id" in data:
