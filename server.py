@@ -40,8 +40,10 @@ db = SQLAlchemy(app)
 from werkzeug.exceptions import HTTPException
 import traceback
 
-def get_photo_url(filename):
-    return url_for('static', filename=f'photos/{filename}', _external=True)
+def get_service_photo_url(filename):
+    if not filename:
+        return None
+    return f"http://193.169.188.220:5000/static/photos/services/{filename}"
 
 # -------------------
 # 🌍 Global error handler
