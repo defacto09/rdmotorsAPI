@@ -347,10 +347,10 @@ def update_autousa_by_vin(vin):
 
     return jsonify(car.to_dict()), 200
 
-@app.route("/autousa/id/<int:car_id>/history", methods=["GET"])
+@app.route("/autousa/vin/<string:vin>/history", methods=["GET"])
 @require_api_key
-def get_autousa_history(car_id):
-    car = AutoUsa.query.get(car_id)
+def get_autousa_history_by_vin(vin):
+    car = AutoUsa.query.filter_by(vin=vin).first()
     if not car:
         return jsonify({"error": "Auto not found"}), 404
 
@@ -378,6 +378,21 @@ def get_autousa_history(car_id):
     history.sort(key=lambda x: x["arrival_date"] or "9999-12-31")
 
     return jsonify(history)
+
+@app.route("/autousa/vin/<string:vin>", methods=["DELETE"])
+@require_api_key
+def delete_autousa_by_vin(vin):
+    """
+    Видалити авто по VIN.
+    """
+    car = AutoUsa.query.filter_by(vin=vin).first()
+    if not car:
+        return jsonify({"error": "Auto not found"}), 404
+
+    db.session.delete(car)
+    db.session.commit()
+    return jsonify({"message": "Auto deleted successfully"}), 200
+
 
 #
 # CLIENT
