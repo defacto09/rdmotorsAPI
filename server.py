@@ -250,8 +250,9 @@ def update_autousa_by_id(car_id):
         return jsonify({"error": "Invalid JSON"}), 400
 
     new_loc_now_id = data.get("loc_now_id")
+
+    # Додаємо попередню локацію в історію, якщо змінюється loc_now_id
     if new_loc_now_id is not None and new_loc_now_id != car.loc_now_id:
-        # Додаємо попередню локацію в історію
         if car.loc_now_id is not None:
             last_history = AutoUsaHistory(
                 autousa_id=car.id,
@@ -260,8 +261,12 @@ def update_autousa_by_id(car_id):
                 departure_date=parse_date(str(car.departure_date)) if car.departure_date else None
             )
             db.session.add(last_history)
+            try:
+                db.session.flush()
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"error": f"Error saving history: {str(e)}"}), 500
 
-        # Оновлюємо поточну локацію
         car.loc_now_id = new_loc_now_id
         car.arrival_date = parse_date(data.get("arrival_date")) or car.arrival_date
         car.departure_date = parse_date(data.get("departure_date")) or car.departure_date
@@ -273,7 +278,12 @@ def update_autousa_by_id(car_id):
         if key in data and data[key] is not None:
             setattr(car, key, data[key])
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Commit failed: {str(e)}"}), 500
+
     return jsonify(car.to_dict())
 
 @app.route("/autousa/id/<int:car_id>/history", methods=["GET"])
