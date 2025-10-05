@@ -256,8 +256,8 @@ def update_autousa_by_id(car_id):
             last_history = AutoUsaHistory(
                 autousa_id=car.id,
                 loc_id=car.loc_now_id,
-                arrival_date=car.arrival_date,
-                departure_date=car.departure_date
+                arrival_date=parse_date(str(car.arrival_date)) if car.arrival_date else None,
+                departure_date=parse_date(str(car.departure_date)) if car.departure_date else None
             )
             db.session.add(last_history)
 
@@ -307,7 +307,6 @@ def get_autousa_history(car_id):
     # Сортування по arrival_date
     history.sort(key=lambda x: x["arrival_date"] or "9999-12-31")
 
-    db.session.commit()
     return jsonify(history)
 
 #
