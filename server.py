@@ -285,6 +285,55 @@ def update_autousa_by_id(car_id):
 
     return jsonify(car.to_dict())
 
+@app.route("/autousa/vin/<string:vin>", methods=["PUT", "PATCH"])
+@require_api_key
+def update_autousa_by_vin(vin):
+    """
+    Оновлює дані про авто за VIN-кодом.
+    Повністю повторює логіку оновлення по ID, включаючи запис історії.
+    """
+    car = AutoUsa.query.filter_by(vin=vin).first()
+    if not car:
+        return jsonify({"error": "Auto not found"}), 404
+
+    data = request.get_json(force=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    new_loc_now_id = data.get("loc_now_id")
+
+    # Додаємо запис в історію, якщо loc_now_id змінився
+    if new_loc_now_id is not None and new_loc_now_id != car.loc_now_id:
+        if car.loc_now_id is not None:
+            last_history = AutoUsaHistory(
+                autousa_id=car.id,
+                loc_id=car.loc_now_id,
+                arrival_date=car.arrival_date,
+                departure_date=car.departure_date
+            )
+            db.session.add(last_history)
+
+        # Оновлюємо локацію та дати
+        car.loc_now_id = new_loc_now_id
+        car.arrival_date = parse_date(data.get("arrival_date")) or car.arrival_date
+        car.departure_date = parse_date(data.get("departure_date")) or car.departure_date
+
+    # Оновлюємо наступну локацію, якщо є
+    if "loc_next_id" in data:
+        car.loc_next_id = data["loc_next_id"]
+
+    # Оновлення інших полів
+    for key in ["container_number", "mark", "model"]:
+        if key in data and data[key] is not None:
+            setattr(car, key, data[key])
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Commit failed: {str(e)}"}), 500
+
+    return jsonify(car.to_dict()), 200
 
 @app.route("/autousa/id/<int:car_id>/history", methods=["GET"])
 @require_api_key
