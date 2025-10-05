@@ -204,6 +204,14 @@ def get_locations():
     locations = Location.query.all()
     return jsonify([loc.to_dict() for loc in locations])
 
+@app.route("/locations/id/<int:location_id>", methods=["GET"])
+@require_api_key
+def get_location_by_id(location_id):
+    location = Location.query.get(location_id)
+    if location:
+        return jsonify(location.to_dict())
+    return jsonify({"error": "Location not found"}), 404
+
 class Client(db.Model):
     __tablename__ = "clients"
     client_id = db.Column(db.Integer, primary_key=True)
