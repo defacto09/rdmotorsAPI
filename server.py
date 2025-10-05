@@ -249,9 +249,9 @@ def update_autousa_by_id(car_id):
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
-    # Оновлення поточної локації і додавання попередньої в історію
     new_loc_now_id = data.get("loc_now_id")
     if new_loc_now_id is not None and new_loc_now_id != car.loc_now_id:
+        # Додаємо попередню локацію в історію
         if car.loc_now_id is not None:
             last_history = AutoUsaHistory(
                 autousa_id=car.id,
@@ -261,15 +261,14 @@ def update_autousa_by_id(car_id):
             )
             db.session.add(last_history)
 
+        # Оновлюємо поточну локацію
         car.loc_now_id = new_loc_now_id
         car.arrival_date = parse_date(data.get("arrival_date")) or car.arrival_date
         car.departure_date = parse_date(data.get("departure_date")) or car.departure_date
 
-    # loc_next_id
     if "loc_next_id" in data:
         car.loc_next_id = data["loc_next_id"]
 
-    # Інші поля
     for key in ["vin", "container_number", "mark", "model"]:
         if key in data and data[key] is not None:
             setattr(car, key, data[key])
