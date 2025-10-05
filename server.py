@@ -252,23 +252,23 @@ def update_autousa_by_id(car_id):
 
     new_loc_now_id = data.get("loc_now_id")
 
-    # Додаємо поточну локацію в історію, якщо є стара loc_now
-    if car.loc_now_id is not None:
-        last_history = AutoUsaHistory(
-            autousa_id=car.id,
-            loc_id=car.loc_now_id,
-            arrival_date=car.arrival_date,
-            departure_date=car.departure_date
-        )
-        db.session.add(last_history)
+    # Додаємо запис в історію лише якщо loc_now_id змінюється
+    if new_loc_now_id is not None and new_loc_now_id != car.loc_now_id:
+        if car.loc_now_id is not None:
+            last_history = AutoUsaHistory(
+                autousa_id=car.id,
+                loc_id=car.loc_now_id,
+                arrival_date=car.arrival_date,
+                departure_date=car.departure_date
+            )
+            db.session.add(last_history)
 
-    # Оновлюємо loc_now_id та дати
-    if new_loc_now_id is not None:
+        # Оновлюємо новий loc_now і дати
         car.loc_now_id = new_loc_now_id
-    car.arrival_date = parse_date(data.get("arrival_date")) or car.arrival_date
-    car.departure_date = parse_date(data.get("departure_date")) or car.departure_date
+        car.arrival_date = parse_date(data.get("arrival_date")) or car.arrival_date
+        car.departure_date = parse_date(data.get("departure_date")) or car.departure_date
 
-    # loc_next
+    # Оновлюємо loc_next_id, якщо є
     if "loc_next_id" in data:
         car.loc_next_id = data["loc_next_id"]
 
@@ -284,6 +284,7 @@ def update_autousa_by_id(car_id):
         return jsonify({"error": f"Commit failed: {str(e)}"}), 500
 
     return jsonify(car.to_dict())
+
 
 @app.route("/autousa/id/<int:car_id>/history", methods=["GET"])
 @require_api_key
