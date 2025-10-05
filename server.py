@@ -307,8 +307,8 @@ def get_autousa_history(car_id):
     # Сортування по arrival_date
     history.sort(key=lambda x: x["arrival_date"] or "9999-12-31")
 
+    db.session.commit()
     return jsonify(history)
-
 
 #
 # CLIENT
