@@ -157,6 +157,10 @@ def delete_service(service_id):
     db.session.commit()
     return jsonify({"message": "Service deleted successfully"})
 
+#
+# AUTO USA
+#
+
 class AutoUsa(db.Model):
     __tablename__ = "autousa"
 
@@ -211,6 +215,76 @@ def get_location_by_id(location_id):
     if location:
         return jsonify(location.to_dict())
     return jsonify({"error": "Location not found"}), 404
+
+
+class AutoUsaHistory(db.Model):
+    __tablename__ = "autousa_history"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    autousa_id = db.Column(db.Integer, db.ForeignKey("autousa.id"), nullable=False)
+    loc_id = db.Column(db.Integer, db.ForeignKey("locations.location_id"), nullable=False)
+    arrival_date = db.Column(db.Date, nullable=True)
+    departure_date = db.Column(db.Date, nullable=True)
+
+    autousa = db.relationship("AutoUsa", backref="history")
+    location = db.relationship("Location")
+
+@app.route("/autousa/id/<int:car_id>", methods=["PUT", "PATCH"])
+@require_api_key
+def update_autousa_by_id(car_id):
+    car = AutoUsa.query.get(car_id)
+    if not car:
+        return jsonify({"error": "Auto not found"}), 404
+
+    data = request.get_json(force=True)
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    # Перевіряємо зміну локацій
+    if "loc_now_id" in data and data["loc_now_id"] != car.loc_now_id:
+        # Додаємо стару локацію в історію
+        if car.loc_now_id:
+            history_record = AutoUsaHistory(
+                autousa_id=car.id,
+                loc_id=car.loc_now_id,
+                arrival_date=car.arrival_date,
+                departure_date=car.departure_date
+            )
+            db.session.add(history_record)
+        car.loc_now_id = data["loc_now_id"]
+
+    if "loc_next_id" in data:
+        car.loc_next_id = data["loc_next_id"]
+
+    # Інші поля
+    for key in ["vin", "container_number", "mark", "model", "arrival_date", "departure_date"]:
+        if key in data and data[key] is not None:
+            setattr(car, key, data[key])
+
+    db.session.commit()
+    return jsonify(car.to_dict())
+
+@app.route("/autousa/id/<int:car_id>/history", methods=["GET"])
+@require_api_key
+def get_autousa_history(car_id):
+    car = AutoUsa.query.get(car_id)
+    if not car:
+        return jsonify({"error": "Auto not found"}), 404
+
+    history = [
+        {
+            "loc_id": h.loc_id,
+            "location_name": h.location.country if h.location else "",
+            "arrival_date": str(h.arrival_date) if h.arrival_date else "",
+            "departure_date": str(h.departure_date) if h.departure_date else ""
+        }
+        for h in car.history
+    ]
+    return jsonify(history)
+
+#
+# CLIENT
+#
 
 class Client(db.Model):
     __tablename__ = "clients"
@@ -302,24 +376,6 @@ def add_autousa():
     db.session.add(new_car)
     db.session.commit()
     return jsonify(new_car.to_dict()), 201
-
-@app.route("/autousa/id/<int:car_id>", methods=["PUT", "PATCH"])
-@require_api_key
-def update_autousa_by_id(car_id):
-    car = AutoUsa.query.get(car_id)
-    if not car:
-        return jsonify({"error": "Auto not found"}), 404
-
-    data = request.get_json(force=True)
-    if not data:
-        return jsonify({"error": "Invalid JSON"}), 400
-
-    for key, value in data.items():
-        if hasattr(car, key) and value is not None:
-            setattr(car, key, value)
-
-    db.session.commit()
-    return jsonify(car.to_dict())
 
 # -------------------
 # 🔹 CARS
