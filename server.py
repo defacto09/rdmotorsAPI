@@ -54,6 +54,14 @@ def parse_date(date_str):
             return None
     return None
 
+def normalize_int(value):
+    if value in [None, "", " "]:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
 # -------------------
 # 🌍 Global error handler
 # -------------------
@@ -288,9 +296,6 @@ def update_autousa_by_id(car_id):
 @app.route("/autousa/vin/<string:vin>", methods=["GET"])
 @require_api_key
 def get_autousa_by_vin(vin):
-    """
-    Отримати інформацію про авто по VIN.
-    """
     car = AutoUsa.query.filter_by(vin=vin).first()
     if not car:
         return jsonify({"error": "Auto not found"}), 404
@@ -299,53 +304,60 @@ def get_autousa_by_vin(vin):
 
 @app.route("/autousa/vin/<string:vin>", methods=["PUT", "PATCH"])
 @require_api_key
-def update_autousa_by_vin(vin):
-    """
-    Оновлює дані про авто за VIN-кодом.
-    Повністю повторює логіку оновлення по ID, включаючи запис історії.
-    """
-    car = AutoUsa.query.filter_by(vin=vin).first()
-    if not car:
-        return jsonify({"error": "Auto not found"}), 404
+def upsert_autousa_by_vin(vin):
 
     data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "Invalid JSON"}), 400
 
-    new_loc_now_id = data.get("loc_now_id")
+    car = AutoUsa.query.filter_by(vin=vin).first()
 
-    # Додаємо запис в історію, якщо loc_now_id змінився
-    if new_loc_now_id is not None and new_loc_now_id != car.loc_now_id:
-        if car.loc_now_id is not None:
-            last_history = AutoUsaHistory(
-                autousa_id=car.id,
-                loc_id=car.loc_now_id,
-                arrival_date=car.arrival_date,
-                departure_date=car.departure_date
-            )
-            db.session.add(last_history)
+    if car:
+        # 🔁 Якщо існує — оновлюємо
+        new_loc_now_id = data.get("loc_now_id")
 
-        # Оновлюємо локацію та дати
-        car.loc_now_id = new_loc_now_id
-        car.arrival_date = parse_date(data.get("arrival_date")) or car.arrival_date
-        car.departure_date = parse_date(data.get("departure_date")) or car.departure_date
+        # Історія переміщень, якщо loc_now_id змінюється
+        if new_loc_now_id is not None and new_loc_now_id != car.loc_now_id:
+            if car.loc_now_id is not None:
+                db.session.add(AutoUsaHistory(
+                    autousa_id=car.id,
+                    loc_id=car.loc_now_id,
+                    arrival_date=car.arrival_date,
+                    departure_date=car.departure_date
+                ))
 
-    # Оновлюємо наступну локацію, якщо є
-    if "loc_next_id" in data:
-        car.loc_next_id = data["loc_next_id"]
+            car.loc_now_id = new_loc_now_id
+            car.arrival_date = parse_date(data.get("arrival_date")) or car.arrival_date
+            car.departure_date = parse_date(data.get("departure_date")) or car.departure_date
 
-    # Оновлення інших полів
-    for key in ["container_number", "mark", "model"]:
-        if key in data and data[key] is not None:
-            setattr(car, key, data[key])
+        if "loc_next_id" in data:
+            car.loc_next_id = data["loc_next_id"]
 
-    try:
+        for key in ["container_number", "mark", "model"]:
+            if key in data and data[key] is not None:
+                setattr(car, key, data[key])
+
         db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Commit failed: {str(e)}"}), 500
+        return jsonify(car.to_dict()), 200
 
-    return jsonify(car.to_dict()), 200
+    else:
+        # 🆕 Якщо авто немає — створюємо новий запис
+        car_data = {
+            "vin": vin,
+            "container_number": data.get("container_number"),
+            "mark": data.get("mark"),
+            "model": data.get("model"),
+            "loc_now_id": data.get("loc_now_id"),
+            "loc_next_id": data.get("loc_next_id"),
+            "arrival_date": parse_date(data.get("arrival_date")),
+            "departure_date": parse_date(data.get("departure_date"))
+        }
+
+        new_car = AutoUsa(**car_data)
+        db.session.add(new_car)
+        db.session.commit()
+        return jsonify(new_car.to_dict()), 201
+
 
 @app.route("/autousa/vin/<string:vin>/history", methods=["GET"])
 @require_api_key
