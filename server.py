@@ -97,6 +97,8 @@ def require_api_key(f):
 
 @app.before_request
 def validate_json():
+    if request.endpoint == 'upload_auto_photos':
+        return
     if request.method in ['POST', 'PUT', 'PATCH']:
         if not request.is_json and request.content_type != 'application/json':
             return jsonify({"error": "Content-Type must be application/json"}), 400
