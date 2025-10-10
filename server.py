@@ -16,6 +16,9 @@ app = Flask(__name__, static_folder='static')
 CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PHOTOS_DIR = os.path.join(BASE_DIR, "static", "photos", "services")
+PHOTOS_AUTO_DIR = os.path.join(BASE_DIR, "static", "photos", "autousa")
+os.makedirs(PHOTOS_AUTO_DIR, exist_ok=True)
+
 
 @app.route('/photos/services/<path:filename>')
 def serve_photo(filename):
@@ -620,9 +623,55 @@ def delete_client(client_id):
     db.session.commit()
     return jsonify({"message": "Client deleted successfully"})
 
-# -------------------
-# 🚀 Run
-# -------------------
+#
+# UPLOAD ZIP
+#
+
+from zipfile import ZipFile
+import shutil
+
+@app.route("/autousa/<string:vin>/upload", methods=["POST"])
+@require_api_key
+def upload_auto_photos(vin):
+    car = AutoUsa.query.filter_by(vin=vin).first()
+    if not car:
+        return jsonify("error": "Auto not found"), 404
+
+    if 'file' not in request.files:
+        return jsonify("error": "Auto not found"), 400
+
+    file = request.files['file']
+
+    if not file.filename.endswith('.zip'):
+        return jsonify({"error": 'File must be a .zip'})
+
+    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    os.makedirs(vin_folder, exist_ok=True)
+
+    temp_path = os.path.join(vin_folder, 'temp.zip')
+    file.save(temp_path)
+
+    try:
+        with ZipFile(temp_path, 'r') as zip_ref:
+            zip_ref.extractall(vin_folder)
+    except Exception as e:
+        return jsonify({"error": f'Failed to unzip: {str(e)}'}), 500
+    finally:
+        os.remove(temp_path)
+
+    return jsonify({'message': f"Photos uploaded successfully for VIN {vin}"}), 201
+
+@app.route("/autousa/<string:vin>/photos", methods=["GET"])
+def get_auto_photos(vin):
+    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    if not os.path.exists(vin_folder):
+        return jsonify({"error": "No photos found for this VIN"}), 404
+
+    files = [f for f in os.listdir(vin_folder) if os.path.isfile(os.path.join(vin_folder, f))]
+
+    urls = [f"http://193.169.188.220:5000/static/photos/autousa/{vin}/{f}" for f in files]
+    return jsonify({"vin": vin, "photos": urls})
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
