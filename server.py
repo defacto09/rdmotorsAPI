@@ -635,10 +635,10 @@ import shutil
 def upload_auto_photos(vin):
     car = AutoUsa.query.filter_by(vin=vin).first()
     if not car:
-        return jsonify("error": "Auto not found"), 404
+        return jsonify({"error": "Auto not found"}), 404
 
     if 'file' not in request.files:
-        return jsonify("error": "Auto not found"), 400
+        return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files['file']
 
