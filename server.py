@@ -671,10 +671,15 @@ def get_auto_photos(vin):
     if not os.path.exists(vin_folder):
         return jsonify({"error": "No photos found for this VIN"}), 404
 
-    files = [f for f in os.listdir(vin_folder) if os.path.isfile(os.path.join(vin_folder, f))]
+    files = []
+    for root_dir, _, filenames in os.walk(vin_folder):  # рекурсивно всі підпапки
+        for f in filenames:
+            if f.startswith("."):  # ігноруємо приховані файли
+                continue
+            rel_path = os.path.relpath(os.path.join(root_dir, f), BASE_DIR + "/static")
+            files.append(f"http://193.169.188.220:5000/static/{rel_path.replace(os.sep, '/')}")
 
-    urls = [f"http://193.169.188.220:5000/static/photos/autousa/{vin}/{f}" for f in files]
-    return jsonify({"vin": vin, "photos": urls})
+    return jsonify({"vin": vin, "photos": files})
 
 if __name__ == "__main__":
     with app.app_context():
