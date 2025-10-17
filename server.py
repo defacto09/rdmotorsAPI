@@ -656,6 +656,11 @@ from zipfile import ZipFile
 import shutil
 from werkzeug.utils import secure_filename
 
+@app.route('/photos/autousa/<string:vin>/<filename>')
+def serve_autousa_photo(vin, filename):
+    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    return send_from_directory(vin_folder, filename)
+
 @app.route("/autousa/<string:vin>/upload", methods=["POST"])
 @require_api_key
 def upload_auto_photos(vin):
@@ -703,12 +708,10 @@ def get_auto_photos(vin):
         return jsonify({"error": "No photos found for this VIN"}), 404
 
     files = []
-    for root_dir, _, filenames in os.walk(vin_folder):
-        for f in filenames:
-            if f.startswith("."):
-                continue
-            rel_path = os.path.relpath(os.path.join(root_dir, f), BASE_DIR + "/static")
-            files.append(f"https://rdmotors.com.ua/static/{rel_path.replace(os.sep, '/')}")
+    for f in os.listdir(vin_folder):
+        if f.startswith("."):
+            continue
+        files.append(f"https://rdmotors.com.ua/photos/autousa/{vin}/{f}")
 
     return jsonify({"vin": vin, "photos": files})
 
