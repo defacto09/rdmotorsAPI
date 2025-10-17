@@ -416,6 +416,14 @@ def delete_autousa_by_vin(vin):
     if not car:
         return jsonify({"error": "Auto not found"}), 404
 
+    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    if os.path.exists(vin_folder):
+        try:
+            shutil.rmtree(vin_folder)
+            print(f"✅ Deleted photos for {vin}")
+        except Exception as e:
+            return jsonify({"error": f"Failed to delete photos: {str(e)}"}), 500
+
     db.session.delete(car)
     db.session.commit()
     return jsonify({"message": "Auto deleted successfully"}), 200
