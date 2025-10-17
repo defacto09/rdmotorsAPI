@@ -25,7 +25,7 @@ def serve_photo(filename):
     return send_from_directory(PHOTOS_DIR, filename)
 
 def get_photo_url(filename):
-    return f"http://193.169.188.220:5000/photos/services/{filename}"
+    return f"https://rdmotors.com.ua/photos/services/{filename}"
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
@@ -39,6 +39,7 @@ db_password_escaped = quote_plus(db_password)
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{db_user}:{db_password_escaped}@{db_host}:{db_port}/{db_name}?charset=utf8mb4"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 200 MB
+app.config['PREFERRED_URL_SCHEME'] = 'https'
 
 
 db = SQLAlchemy(app)
@@ -49,7 +50,7 @@ import traceback
 def get_service_photo_url(filename):
     if not filename:
         return None
-    return f"http://193.169.188.220:5000/static/photos/services/{filename}"
+    return f"https://rdmotors.com.ua/static/photos/services/{filename}"
 
 def parse_date(date_str):
     if date_str:
@@ -412,6 +413,45 @@ def delete_autousa_by_vin(vin):
     db.session.commit()
     return jsonify({"message": "Auto deleted successfully"}), 200
 
+@app.route("/autousa", methods=["GET"])
+@require_api_key
+def get_autousa():
+    cars = AutoUsa.query.all()
+    return jsonify([car.to_dict() for car in cars])
+
+@app.route("/autousa/id/<int:car_id>", methods=["GET"])
+@require_api_key
+def get_autousa_by_id(car_id):
+    car = AutoUsa.query.get(car_id)
+    if car:
+        return jsonify(car.to_dict())
+    return jsonify({"error": "Auto not found"}), 404
+
+@app.route("/autousa/id/<int:car_id>", methods=["DELETE"])
+@require_api_key
+def delete_autousa_by_id(car_id):
+    car = AutoUsa.query.get(car_id)
+    if not car:
+        return jsonify({"error": "Auto not found"}), 404
+    db.session.delete(car)
+    db.session.commit()
+    return jsonify({"message": "Auto deleted successfully"})
+
+@app.route("/autousa", methods=["POST"])
+@require_api_key
+def add_autousa():
+    data = request.get_json(force=True)
+    if not data or "vin" not in data:
+        return jsonify({"error": "Invalid JSON or missing VIN"}), 400
+
+    if AutoUsa.query.filter_by(vin=data["vin"]).first():
+        return jsonify({"error": "VIN already exists"}), 400
+
+    car_data = {k: (v if v is not None else "") for k, v in data.items()}
+    new_car = AutoUsa(**car_data)
+    db.session.add(new_car)
+    db.session.commit()
+    return jsonify(new_car.to_dict()), 201
 
 #
 # CLIENT
@@ -464,49 +504,6 @@ class Car(db.Model):
             "engine": self.engine,
             "quality": self.quality
         }
-
-# -------------------
-# 🔹 AUTOUSA ROUTES (по ID)
-# -------------------
-@app.route("/autousa", methods=["GET"])
-@require_api_key
-def get_autousa():
-    cars = AutoUsa.query.all()
-    return jsonify([car.to_dict() for car in cars])
-
-@app.route("/autousa/id/<int:car_id>", methods=["GET"])
-@require_api_key
-def get_autousa_by_id(car_id):
-    car = AutoUsa.query.get(car_id)
-    if car:
-        return jsonify(car.to_dict())
-    return jsonify({"error": "Auto not found"}), 404
-
-@app.route("/autousa/id/<int:car_id>", methods=["DELETE"])
-@require_api_key
-def delete_autousa_by_id(car_id):
-    car = AutoUsa.query.get(car_id)
-    if not car:
-        return jsonify({"error": "Auto not found"}), 404
-    db.session.delete(car)
-    db.session.commit()
-    return jsonify({"message": "Auto deleted successfully"})
-
-@app.route("/autousa", methods=["POST"])
-@require_api_key
-def add_autousa():
-    data = request.get_json(force=True)
-    if not data or "vin" not in data:
-        return jsonify({"error": "Invalid JSON or missing VIN"}), 400
-
-    if AutoUsa.query.filter_by(vin=data["vin"]).first():
-        return jsonify({"error": "VIN already exists"}), 400
-
-    car_data = {k: (v if v is not None else "") for k, v in data.items()}
-    new_car = AutoUsa(**car_data)
-    db.session.add(new_car)
-    db.session.commit()
-    return jsonify(new_car.to_dict()), 201
 
 # -------------------
 # 🔹 CARS
@@ -677,7 +674,7 @@ def get_auto_photos(vin):
             if f.startswith("."):  # ігноруємо приховані файли
                 continue
             rel_path = os.path.relpath(os.path.join(root_dir, f), BASE_DIR + "/static")
-            files.append(f"http://193.169.188.220:5000/static/{rel_path.replace(os.sep, '/')}")
+            files.append(f"https://rdmotors.com.ua/static/{rel_path.replace(os.sep, '/')}")
 
     return jsonify({"vin": vin, "photos": files})
 
