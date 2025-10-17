@@ -203,7 +203,11 @@ class AutoUsa(db.Model):
     loc_now = db.relationship("Location", foreign_keys=[loc_now_id])
     loc_next = db.relationship("Location", foreign_keys=[loc_next_id])
 
-    history = db.relationship("AutoUsaHistory", backref="autousa", cascade="all, delete-orphan")
+    history = db.relationship(
+        "AutoUsaHistory",
+        cascade="all, delete-orphan",
+        back_populates="autousa"  # замість backref
+    )
 
     def to_dict(self):
         return {
@@ -248,12 +252,12 @@ class AutoUsaHistory(db.Model):
     __tablename__ = "autousa_history"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    autousa_id = db.Column(db.Integer, db.ForeignKey("autousa.id"), nullable=False)
+    autousa_id = db.Column(db.Integer, db.ForeignKey("autousa.id", ondelete="CASCADE"), nullable=False)
     loc_id = db.Column(db.Integer, db.ForeignKey("locations.location_id"), nullable=False)
     arrival_date = db.Column(db.Date, nullable=True)
     departure_date = db.Column(db.Date, nullable=True)
 
-    autousa = db.relationship("AutoUsa", backref="history")
+    autousa = db.relationship("AutoUsa", back_populates="history")
     location = db.relationship("Location", foreign_keys=[loc_id])
 
 
