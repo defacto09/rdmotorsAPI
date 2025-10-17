@@ -433,6 +433,7 @@ def delete_autousa_by_id(car_id):
     car = AutoUsa.query.get(car_id)
     if not car:
         return jsonify({"error": "Auto not found"}), 404
+    AutoUsaHistory.query.filter_by(autousa_id=car.id).delete()
     db.session.delete(car)
     db.session.commit()
     return jsonify({"message": "Auto deleted successfully"})
