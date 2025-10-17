@@ -203,6 +203,8 @@ class AutoUsa(db.Model):
     loc_now = db.relationship("Location", foreign_keys=[loc_now_id])
     loc_next = db.relationship("Location", foreign_keys=[loc_next_id])
 
+    history = db.relationship("AutoUsaHistory", backref="autousa", cascade="all, delete-orphan")
+
     def to_dict(self):
         return {
             "id": self.id,
