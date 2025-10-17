@@ -9,6 +9,7 @@ from urllib.parse import quote_plus
 from flask import Flask, send_from_directory
 from datetime import datetime
 import pathlib
+import logging
 
 # Завантаження секретів
 load_dotenv()
@@ -19,6 +20,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PHOTOS_DIR = os.path.join(BASE_DIR, "static", "photos", "services")
 PHOTOS_AUTO_DIR = os.path.join(BASE_DIR, "static", "photos", "autousa")
 os.makedirs(PHOTOS_AUTO_DIR, exist_ok=True)
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler("autousa_photos.log"),
+        logging.StreamHandler()
+    ]
+)
+
 
 
 @app.route('/photos/services/<path:filename>')
@@ -75,17 +87,13 @@ def normalize_int(value):
 @app.errorhandler(Exception)
 def handle_exception(e):
     if isinstance(e, HTTPException):
-        return jsonify({
-            "error": e.name,
-            "description": e.description,
-            "code": e.code
-        }), e.code
+        return jsonify({"error": e.name, "description": e.description, "code": e.code}), e.code
 
-    return jsonify({
-        "error": "Internal Server Error",
-        "description": str(e),
-        "trace": traceback.format_exc() if app.debug else None
-    }), 500
+    logging.error(
+        f"Exception occurred at {request.method} {request.path}",
+        exc_info=e
+    )
+    return jsonify({"error": "Internal Server Error"}), 500
 
 # -------------------
 # 🔑 API KEY middleware
@@ -646,6 +654,7 @@ def delete_client(client_id):
 
 from zipfile import ZipFile
 import shutil
+from werkzeug.utils import secure_filename
 
 @app.route("/autousa/<string:vin>/upload", methods=["POST"])
 @require_api_key
@@ -660,7 +669,7 @@ def upload_auto_photos(vin):
     file = request.files['file']
 
     if not file.filename.endswith('.zip'):
-        return jsonify({"error": 'File must be a .zip'})
+        return jsonify({"error": 'File must be a .zip'}), 400
 
     vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
     os.makedirs(vin_folder, exist_ok=True)
@@ -671,20 +680,21 @@ def upload_auto_photos(vin):
     try:
         with ZipFile(temp_path, 'r') as zip_ref:
             for zip_info in zip_ref.infolist():
-                # Виправляємо всі зворотні слеші на прямі
-                fixed_name = zip_info.filename.replace("\\", "/")
-                # Беремо лише basename, щоб уникнути складних шляхів
-                fixed_name = pathlib.Path(fixed_name).name
-                # Створюємо шлях для збереження
-                dest_path = os.path.join(vin_folder, fixed_name)
+                # Беремо тільки basename + робимо безпечну назву
+                safe_name = secure_filename(pathlib.Path(zip_info.filename).name)
+                if not safe_name:
+                    continue  # пропускаємо порожні назви
+                dest_path = os.path.join(vin_folder, safe_name)
                 with zip_ref.open(zip_info) as source, open(dest_path, 'wb') as target:
                     shutil.copyfileobj(source, target)
     except Exception as e:
         return jsonify({"error": f'Failed to unzip: {str(e)}'}), 500
     finally:
-        os.remove(temp_path)
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
     return jsonify({'message': f"Photos uploaded successfully for VIN {vin}"}), 201
+
 
 @app.route("/autousa/<string:vin>/photos", methods=["GET"])
 def get_auto_photos(vin):
@@ -693,9 +703,9 @@ def get_auto_photos(vin):
         return jsonify({"error": "No photos found for this VIN"}), 404
 
     files = []
-    for root_dir, _, filenames in os.walk(vin_folder):  # рекурсивно всі підпапки
+    for root_dir, _, filenames in os.walk(vin_folder):
         for f in filenames:
-            if f.startswith("."):  # ігноруємо приховані файли
+            if f.startswith("."):
                 continue
             rel_path = os.path.relpath(os.path.join(root_dir, f), BASE_DIR + "/static")
             files.append(f"https://rdmotors.com.ua/static/{rel_path.replace(os.sep, '/')}")
