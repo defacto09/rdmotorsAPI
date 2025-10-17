@@ -8,6 +8,7 @@ from flask import url_for
 from urllib.parse import quote_plus
 from flask import Flask, send_from_directory
 from datetime import datetime
+import pathlib
 
 # Завантаження секретів
 load_dotenv()
@@ -661,7 +662,15 @@ def upload_auto_photos(vin):
 
     try:
         with ZipFile(temp_path, 'r') as zip_ref:
-            zip_ref.extractall(vin_folder)
+            for zip_info in zip_ref.infolist():
+                # Виправляємо всі зворотні слеші на прямі
+                fixed_name = zip_info.filename.replace("\\", "/")
+                # Беремо лише basename, щоб уникнути складних шляхів
+                fixed_name = pathlib.Path(fixed_name).name
+                # Створюємо шлях для збереження
+                dest_path = os.path.join(vin_folder, fixed_name)
+                with zip_ref.open(zip_info) as source, open(dest_path, 'wb') as target:
+                    shutil.copyfileobj(source, target)
     except Exception as e:
         return jsonify({"error": f'Failed to unzip: {str(e)}'}), 500
     finally:
