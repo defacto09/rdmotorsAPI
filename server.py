@@ -15,7 +15,9 @@ import logging
 load_dotenv()
 
 app = Flask(__name__, static_folder='static')
-CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
+CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], resources={r"/*": {"origins": "*"}})
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PHOTOS_DIR = os.path.join(BASE_DIR, "static", "photos", "services")
 PHOTOS_AUTO_DIR = os.path.join(BASE_DIR, "static", "photos", "autousa")
