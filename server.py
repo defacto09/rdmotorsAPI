@@ -36,11 +36,13 @@ logging.basicConfig(
 @app.before_request
 def handle_options():
     if request.method == "OPTIONS":
-        resp = app.make_response("")
+        from flask import make_response
+        resp = make_response('', 204)  # Відповідь 204 No Content
         resp.headers["Access-Control-Allow-Origin"] = "*"
         resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
         return resp
+
 
 @app.route('/photos/services/<path:filename>')
 def serve_photo(filename):
