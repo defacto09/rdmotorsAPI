@@ -33,7 +33,14 @@ logging.basicConfig(
     ]
 )
 
-
+@app.before_request
+def handle_options():
+    if request.method == "OPTIONS":
+        resp = app.make_response("")
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+        return resp
 
 @app.route('/photos/services/<path:filename>')
 def serve_photo(filename):
