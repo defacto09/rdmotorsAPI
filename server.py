@@ -24,10 +24,6 @@ PHOTOS_AUTO_DIR = os.path.join(BASE_DIR, "static", "photos", "autousa")
 os.makedirs(PHOTOS_AUTO_DIR, exist_ok=True)
 
 
-
-# ------------------------
-# 📁 Логи
-# ------------------------
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -37,42 +33,35 @@ logging.basicConfig(
     ]
 )
 
-# ------------------------
-# 📦 API приклад
-# ------------------------
-@app.route('/api/test', methods=['GET'])
-def test_api():
-    return jsonify({"status": "ok"})
+@app.route('/photos/services/<path:filename>')
+def serve_photo(filename):
+    resp = make_response(send_from_directory(PHOTOS_DIR, filename))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
-
-# ------------------------
-# 🖥 SPA фронтенд (React / Vite)
-# ------------------------
 @app.route("/", defaults={'path': ''})
 @app.route("/<path:path>")
 def serve_spa(path):
     full_path = os.path.join(app.static_folder, path)
     if os.path.exists(full_path):
         return send_from_directory(app.static_folder, path)
-    return send_from_directory(app.static_folder, "index.html")
+    else:
+        return send_from_directory(app.static_folder, "index.html")
 
-
-# ------------------------
-# ⚡ OPTIONS для CORS
-# ------------------------
 @app.before_request
 def handle_options():
     if request.method == "OPTIONS":
         from flask import make_response
-        resp = make_response('', 204)
+        resp = make_response('', 204)  # Відповідь 204 No Content
         resp.headers["Access-Control-Allow-Origin"] = "*"
         resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
         return resp
 
-def get_photo_url(filename, folder="services"):
-    return f"https://rdmotors.com.ua/photos/{folder}/{filename}"
-
+def get_photo_url(filename):
+    return f"https://rdmotors.com.ua/photos/services/{filename}"
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
