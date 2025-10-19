@@ -55,7 +55,11 @@ def handle_options():
 
 @app.route('/photos/services/<path:filename>')
 def serve_photo(filename):
-    return send_from_directory(PHOTOS_DIR, filename)
+    resp = make_response(send_from_directory(PHOTOS_DIR, filename))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 def get_photo_url(filename):
     return f"https://rdmotors.com.ua/photos/services/{filename}"
