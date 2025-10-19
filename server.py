@@ -41,20 +41,6 @@ def serve_photo(filename):
     resp.headers['Expires'] = '0'
     return resp
 
-@app.route('/photos/autousa/<path:filename>')
-def serve_autousa_photo(filename):
-    full_path = os.path.join(PHOTOS_AUTO_DIR, filename)
-    if os.path.exists(full_path):
-        resp = make_response(send_from_directory(PHOTOS_AUTO_DIR, filename))
-        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        resp.headers['Pragma'] = 'no-cache'
-        resp.headers['Expires'] = '0'
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        return resp
-    else:
-        return "File not found", 404
-
-
 @app.route("/", defaults={'path': ''})
 @app.route("/<path:path>")
 def serve_spa(path):
