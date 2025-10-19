@@ -15,42 +15,32 @@ import logging
 load_dotenv()
 
 app = Flask(__name__, static_folder='static')
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], resources={r"/*": {"origins": "*"}})
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PHOTOS_DIR = os.path.join(BASE_DIR, "static", "photos", "services")
 PHOTOS_AUTO_DIR = os.path.join(BASE_DIR, "static", "photos", "autousa")
 os.makedirs(PHOTOS_AUTO_DIR, exist_ok=True)
 
-# --- Serve service photos ---
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler("autousa_photos.log"),
+        logging.StreamHandler()
+    ]
+)
+
 @app.route('/photos/services/<path:filename>')
-def serve_service_photo(filename):
-    full_path = os.path.join(PHOTOS_DIR, filename)
-    if os.path.exists(full_path):
-        resp = make_response(send_from_directory(PHOTOS_DIR, filename))
-        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        resp.headers['Pragma'] = 'no-cache'
-        resp.headers['Expires'] = '0'
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        return resp
-    else:
-        return "File not found", 404
+def serve_photo(filename):
+    resp = make_response(send_from_directory(PHOTOS_DIR, filename))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
-# --- Serve autousa photos ---
-@app.route('/photos/autousa/<path:filename>')
-def serve_autousa_photo(filename):
-    full_path = os.path.join(PHOTOS_AUTO_DIR, filename)
-    if os.path.exists(full_path):
-        resp = make_response(send_from_directory(PHOTOS_AUTO_DIR, filename))
-        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        resp.headers['Pragma'] = 'no-cache'
-        resp.headers['Expires'] = '0'
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        return resp
-    else:
-        return "File not found", 404
-
-# --- Catch-all for SPA ---
 @app.route("/", defaults={'path': ''})
 @app.route("/<path:path>")
 def serve_spa(path):
@@ -60,22 +50,18 @@ def serve_spa(path):
     else:
         return send_from_directory(app.static_folder, "index.html")
 
-# --- Handle OPTIONS requests for CORS ---
 @app.before_request
 def handle_options():
     if request.method == "OPTIONS":
-        resp = make_response('', 204)
+        from flask import make_response
+        resp = make_response('', 204)  # Відповідь 204 No Content
         resp.headers["Access-Control-Allow-Origin"] = "*"
         resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
         return resp
 
-# --- Helper to get photo URLs ---
-def get_service_photo_url(filename):
+def get_photo_url(filename):
     return f"https://rdmotors.com.ua/photos/services/{filename}"
-
-def get_autousa_photo_url(filename):
-    return f"https://rdmotors.com.ua/photos/autousa/{filename}"
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
