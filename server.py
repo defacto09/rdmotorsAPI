@@ -33,6 +33,15 @@ logging.basicConfig(
     ]
 )
 
+@app.route('/photos/services/<path:filename>')
+def serve_photo(filename):
+    resp = make_response(send_from_directory(PHOTOS_DIR, filename))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
+
+
 @app.route("/", defaults={'path': ''})
 @app.route("/<path:path>")
 def serve_spa(path):
@@ -51,15 +60,6 @@ def handle_options():
         resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
         return resp
-
-
-@app.route('/photos/services/<path:filename>')
-def serve_photo(filename):
-    resp = make_response(send_from_directory(PHOTOS_DIR, filename))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
-    return resp
 
 def get_photo_url(filename):
     return f"https://rdmotors.com.ua/photos/services/{filename}"
