@@ -704,7 +704,7 @@ def upload_auto_photos(vin):
     temp_path = os.path.join(vin_folder, 'temp.zip')
     file.save(temp_path)
 
-    SKIP_NAMES = {"DS_Store", "Warehouse"}
+    SKIP_NAMES = {"DS_Store"}
     allowed_ext = {'.jpg', '.jpeg', '.png'}
 
     try:
