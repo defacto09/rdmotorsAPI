@@ -742,12 +742,20 @@ def get_auto_photos(vin):
         return jsonify({"error": "No photos found for this VIN"}), 404
 
     files = []
+    allowed_ext = {'.jpg', '.jpeg', '.png'}
+
     for f in sorted(os.listdir(vin_folder)):
-        if f.startswith(".") or f == "DS_Store":
+        if f.startswith('.') or f == "DS_Store":
             continue
+
+        ext = pathlib.Path(f).suffix.lower()
+        if ext not in allowed_ext:
+            continue
+
         files.append(f"https://rdmotors.com.ua/photos/autousa/{vin}/{f}")
 
     return jsonify({"vin": vin, "photos": files})
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
