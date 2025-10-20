@@ -716,15 +716,19 @@ def upload_auto_photos(vin):
     try:
         with ZipFile(temp_path, 'r') as zip_ref:
             for zip_info in zip_ref.infolist():
-                # Беремо тільки basename + робимо безпечну назву
+                # Ігноруємо AppleDouble та __MACOSX
+                if "__MACOSX" in zip_info.filename or zip_info.filename.startswith("._"):
+                    continue
+
+                # Беремо тільки basename і робимо безпечну назву
                 safe_name = secure_filename(pathlib.Path(zip_info.filename).name)
                 if not safe_name:
                     continue
-                if not safe_name or safe_name.startswith("._"):
-                    continue
+
                 dest_path = os.path.join(vin_folder, safe_name)
                 with zip_ref.open(zip_info) as source, open(dest_path, 'wb') as target:
                     shutil.copyfileobj(source, target)
+
     except Exception as e:
         return jsonify({"error": f'Failed to unzip: {str(e)}'}), 500
     finally:
