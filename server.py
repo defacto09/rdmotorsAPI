@@ -686,11 +686,9 @@ def delete_client(client_id):
 from zipfile import ZipFile
 import shutil
 from werkzeug.utils import secure_filename
-
-@app.route('/photos/autousa/<string:vin>/<filename>')
-def serve_autousa_photo(vin, filename):
-    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
-    return send_from_directory(vin_folder, filename)
+import os
+import pathlib
+from flask import request, jsonify
 
 @app.route("/autousa/<string:vin>/upload", methods=["POST"])
 @require_api_key
@@ -714,20 +712,23 @@ def upload_auto_photos(vin):
     temp_path = os.path.join(vin_folder, 'temp.zip')
     file.save(temp_path)
 
+    SKIP_NAMES = {"DS_Store", "Warehouse"}
+    allowed_ext = {'.jpg', '.jpeg', '.png'}
+
     try:
         with ZipFile(temp_path, 'r') as zip_ref:
             for zip_info in zip_ref.infolist():
-                allowed_ext = {'.jpg', '.jpeg', '.png'}
-                ext = pathlib.Path(safe_name).suffix.lower()
-                if ext not in allowed_ext:
-                    continue
-                # Ігноруємо AppleDouble та __MACOSX
-                if "__MACOSX" in zip_info.filename or zip_info.filename.startswith("._"):
+                # Ігноруємо AppleDouble, __MACOSX і службові файли від macOS
+                if ("__MACOSX" in zip_info.filename or
+                    zip_info.filename.startswith("._")):
                     continue
 
-                # Беремо тільки basename і робимо безпечну назву
                 safe_name = secure_filename(pathlib.Path(zip_info.filename).name)
-                if not safe_name:
+                if not safe_name or safe_name in SKIP_NAMES:
+                    continue
+
+                ext = pathlib.Path(safe_name).suffix.lower()
+                if ext not in allowed_ext:
                     continue
 
                 dest_path = os.path.join(vin_folder, safe_name)
@@ -741,21 +742,6 @@ def upload_auto_photos(vin):
             os.remove(temp_path)
 
     return jsonify({'message': f"Photos uploaded successfully for VIN {vin}"}), 201
-
-
-@app.route("/autousa/<string:vin>/photos", methods=["GET"])
-def get_auto_photos(vin):
-    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
-    if not os.path.exists(vin_folder):
-        return jsonify({"error": "No photos found for this VIN"}), 404
-
-    files = []
-    for f in os.listdir(vin_folder):
-        if f.startswith("."):
-            continue
-        files.append(f"https://rdmotors.com.ua/photos/autousa/{vin}/{f}")
-
-    return jsonify({"vin": vin, "photos": files})
 
 if __name__ == "__main__":
     with app.app_context():
