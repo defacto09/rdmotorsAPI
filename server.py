@@ -743,6 +743,20 @@ def upload_auto_photos(vin):
 
     return jsonify({'message': f"Photos uploaded successfully for VIN {vin}"}), 201
 
+@app.route("/autousa/<string:vin>/photos", methods=["GET"])
+def get_auto_photos(vin):
+    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    if not os.path.exists(vin_folder):
+        return jsonify({"error": "No photos found for this VIN"}), 404
+
+    files = []
+    for f in os.listdir(vin_folder):
+        if f.startswith("."):
+            continue
+        files.append(f"https://rdmotors.com.ua/photos/autousa/{vin}/{f}")
+
+    return jsonify({"vin": vin, "photos": files})
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
