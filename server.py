@@ -20,7 +20,7 @@ CORS(app, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], resources={r"/*": {
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PHOTOS_DIR = os.path.join(BASE_DIR, "static", "photos", "services")
-PHOTOS_AUTO_DIR = os.path.join(BASE_DIR, "static", "photos", "autousa")
+PHOTOS_AUTO_DIR = "/var/www/rdmotorsAPI/static/photos/autousa"
 os.makedirs(PHOTOS_AUTO_DIR, exist_ok=True)
 
 
