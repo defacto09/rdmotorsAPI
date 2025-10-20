@@ -743,7 +743,6 @@ def get_auto_photos(vin):
 
     files = []
     for f in sorted(os.listdir(vin_folder)):
-        # Ігноруємо лише службові файли
         if f.startswith(".") or f == "DS_Store":
             continue
         files.append(f"https://rdmotors.com.ua/photos/autousa/{vin}/{f}")
