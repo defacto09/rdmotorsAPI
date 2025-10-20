@@ -41,6 +41,14 @@ def serve_photo(filename):
     resp.headers['Expires'] = '0'
     return resp
 
+@app.route('/photos/autousa/<path:filename>')
+def serve_photo(filename):
+    resp = make_response(send_from_directory(PHOTOS_AUTO_DIR, filename))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
+
 @app.route("/", defaults={'path': ''})
 @app.route("/<path:path>")
 def serve_spa(path):
