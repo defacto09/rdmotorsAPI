@@ -41,14 +41,6 @@ def serve_photo(filename):
     resp.headers['Expires'] = '0'
     return resp
 
-@app.route('/photos/autousa/<path:filename>')
-def serve_photo(filename):
-    resp = make_response(send_from_directory(PHOTOS_AUTO_DIR, filename))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    resp.headers['Pragma'] = 'no-cache'
-    resp.headers['Expires'] = '0'
-    return resp
-
 @app.route("/", defaults={'path': ''})
 @app.route("/<path:path>")
 def serve_spa(path):
@@ -750,8 +742,9 @@ def get_auto_photos(vin):
         return jsonify({"error": "No photos found for this VIN"}), 404
 
     files = []
+    # Фільтруємо зайві файлові імена
     for f in os.listdir(vin_folder):
-        if f.startswith("."):
+        if f.startswith(".") or "Warehouse" in f or f == "DS_Store":
             continue
         files.append(f"https://rdmotors.com.ua/photos/autousa/{vin}/{f}")
 
