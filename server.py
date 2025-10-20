@@ -696,6 +696,7 @@ def serve_autousa_photo(vin, filename):
 @require_api_key
 def upload_auto_photos(vin):
     car = AutoUsa.query.filter_by(vin=vin).first()
+
     if not car:
         return jsonify({"error": "Auto not found"}), 404
 
@@ -716,6 +717,10 @@ def upload_auto_photos(vin):
     try:
         with ZipFile(temp_path, 'r') as zip_ref:
             for zip_info in zip_ref.infolist():
+                allowed_ext = {'.jpg', '.jpeg', '.png'}
+                ext = pathlib.Path(safe_name).suffix.lower()
+                if ext not in allowed_ext:
+                    continue
                 # Ігноруємо AppleDouble та __MACOSX
                 if "__MACOSX" in zip_info.filename or zip_info.filename.startswith("._"):
                     continue
