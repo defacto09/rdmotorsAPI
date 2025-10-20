@@ -744,7 +744,7 @@ def get_auto_photos(vin):
     files = []
     # Фільтруємо зайві файлові імена
     for f in os.listdir(vin_folder):
-        if f.startswith(".") or "Warehouse" in f or f == "DS_Store":
+        if f.startswith(".") or f == "DS_Store":
             continue
         files.append(f"https://rdmotors.com.ua/photos/autousa/{vin}/{f}")
 
