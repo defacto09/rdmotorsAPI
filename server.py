@@ -719,7 +719,9 @@ def upload_auto_photos(vin):
                 # Беремо тільки basename + робимо безпечну назву
                 safe_name = secure_filename(pathlib.Path(zip_info.filename).name)
                 if not safe_name:
-                    continue  # пропускаємо порожні назви
+                    continue
+                if not safe_name or safe_name.startswith("._"):
+                    continue
                 dest_path = os.path.join(vin_folder, safe_name)
                 with zip_ref.open(zip_info) as source, open(dest_path, 'wb') as target:
                     shutil.copyfileobj(source, target)
