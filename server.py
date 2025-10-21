@@ -32,7 +32,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-
+3
 @app.route('/photos/services/<path:filename>')
 def serve_photo(filename):
     resp = make_response(send_from_directory(PHOTOS_DIR, filename))
@@ -61,7 +61,7 @@ def handle_options():
         return resp
 
 def get_photo_url(filename):
-    return f"https://rdmotors.com.ua/photos/services/{filename}"
+    return f"http://rdmotors.com.ua/photos/services/{filename}"
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
