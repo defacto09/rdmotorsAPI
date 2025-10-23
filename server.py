@@ -538,7 +538,7 @@ class Car(db.Model):
     discount = db.Column(db.Integer, nullable=False)
     quality = db.Column(db.Integer, nullable=False)
     engine = db.Column(db.String, nullable=False)
-    photo_filename = db.Column(db.String(255), nullable=False)
+    photo_url = db.Column(db.String(255), nullable=False)
 
     def to_dict(self):
         return {
@@ -554,7 +554,7 @@ class Car(db.Model):
             "discount": float(self.discount),
             "engine": self.engine,
             "quality": self.quality,
-            "url": self.get_car_photo_url(self.photo_filename) if self.photo_filename else None
+            "photo_url": self.get_car_photo_url(self.photo_url) if self.photo_url else None
         }
 
 # -------------------
