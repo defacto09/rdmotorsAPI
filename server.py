@@ -61,7 +61,10 @@ def handle_options():
         return resp
 
 def get_photo_url(filename):
-    return f"http://rdmotors.com.ua/photos/services/{filename}"
+    return f"https://rdmotors.com.ua/photos/services/{filename}"
+
+def get_car_photo_url(filename):
+    return f"https://rdmotors.com.ua/photos/cars/{filename}"
 
 # Параметри бази даних
 db_user = os.getenv("DB_USER")
@@ -535,6 +538,7 @@ class Car(db.Model):
     discount = db.Column(db.Integer, nullable=False)
     quality = db.Column(db.Integer, nullable=False)
     engine = db.Column(db.String, nullable=False)
+    photo_filename = db.Column(db.String(255), nullable=False)
 
     def to_dict(self):
         return {
@@ -550,6 +554,7 @@ class Car(db.Model):
             "discount": float(self.discount),
             "engine": self.engine,
             "quality": self.quality
+            "url": self.get_сar_photo_url(self.photo_filename) if self.photo_filename else None
         }
 
 # -------------------
