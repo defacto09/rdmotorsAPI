@@ -553,7 +553,7 @@ class Car(db.Model):
             "price": float(self.price),
             "discount": float(self.discount),
             "engine": self.engine,
-            "quality": self.quality
+            "quality": self.quality,
             "url": self.get_сar_photo_url(self.photo_filename) if self.photo_filename else None
         }
 
