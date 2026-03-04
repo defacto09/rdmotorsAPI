@@ -1,7 +1,7 @@
 """Services routes blueprint"""
 from flask import Blueprint, jsonify, request
 from rdmotorsAPI.models import Service, db
-from rdmotorsAPI.auth import require_api_key
+from rdmotorsAPI.auth import require_firebase_auth
 from rdmotorsAPI.utils import get_pagination_params, sanitize_string
 from rdmotorsAPI import limiter  # noqa: E402
 import logging
@@ -11,7 +11,7 @@ services_bp = Blueprint('services', __name__)
 
 @services_bp.route("/services", methods=["GET"])
 @limiter.limit("100 per hour")
-@require_api_key
+@require_firebase_auth
 def get_services():
     """Get all services with optional pagination"""
     page, per_page = get_pagination_params()
@@ -28,7 +28,7 @@ def get_services():
 
 
 @services_bp.route("/services/<int:service_id>", methods=["GET"])
-@require_api_key
+@require_firebase_auth
 def get_service_by_id(service_id):
     """Get service by ID"""
     service = Service.query.get(service_id)
@@ -39,7 +39,7 @@ def get_service_by_id(service_id):
 
 @services_bp.route("/services", methods=["POST"])
 @limiter.limit("50 per hour")
-@require_api_key
+@require_firebase_auth
 def add_service():
     """Create a new service"""
     data = request.get_json(force=True)
@@ -74,7 +74,7 @@ def add_service():
 
 @services_bp.route("/services/<int:service_id>", methods=["PUT", "PATCH"])
 @limiter.limit("100 per hour")
-@require_api_key
+@require_firebase_auth
 def update_service(service_id):
     """Update a service by ID"""
     service = Service.query.get(service_id)
@@ -101,7 +101,7 @@ def update_service(service_id):
 
 @services_bp.route("/services/<int:service_id>", methods=["DELETE"])
 @limiter.limit("50 per hour")
-@require_api_key
+@require_firebase_auth
 def delete_service(service_id):
     """Delete a service by ID"""
     service = Service.query.get(service_id)

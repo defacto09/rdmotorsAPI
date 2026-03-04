@@ -1,7 +1,7 @@
 """Clients routes blueprint"""
 from flask import Blueprint, jsonify, request
 from rdmotorsAPI.models import Client, db
-from rdmotorsAPI.auth import require_api_key
+from rdmotorsAPI.auth import require_firebase_auth
 from rdmotorsAPI.utils import get_pagination_params, sanitize_string, sanitize_email
 from rdmotorsAPI import limiter  # noqa: E402
 import logging
@@ -11,7 +11,7 @@ clients_bp = Blueprint('clients', __name__)
 
 @clients_bp.route("/clients", methods=["GET"])
 @limiter.limit("100 per hour")
-@require_api_key
+@require_firebase_auth
 def get_clients():
     """Get all clients with optional pagination"""
     page, per_page = get_pagination_params()
@@ -28,7 +28,7 @@ def get_clients():
 
 
 @clients_bp.route("/clients/<int:client_id>", methods=["GET"])
-@require_api_key
+@require_firebase_auth
 def get_client(client_id):
     """Get client by ID"""
     client = Client.query.get(client_id)
@@ -39,7 +39,7 @@ def get_client(client_id):
 
 @clients_bp.route("/clients", methods=["POST"])
 @limiter.limit("50 per hour")
-@require_api_key
+@require_firebase_auth
 def add_client():
     """Create a new client"""
     data = request.get_json(force=True)
@@ -76,7 +76,7 @@ def add_client():
 
 @clients_bp.route("/clients/<int:client_id>", methods=["PUT", "PATCH"])
 @limiter.limit("100 per hour")
-@require_api_key
+@require_firebase_auth
 def update_client(client_id):
     """Update a client by ID"""
     client = Client.query.get(client_id)
@@ -119,7 +119,7 @@ def update_client(client_id):
 
 @clients_bp.route("/clients/<int:client_id>", methods=["DELETE"])
 @limiter.limit("50 per hour")
-@require_api_key
+@require_firebase_auth
 def delete_client(client_id):
     """Delete a client by ID"""
     client = Client.query.get(client_id)

@@ -1,5 +1,5 @@
 """Main server file - entry point for the API"""
-from flask import Flask, jsonify, request, make_response, send_from_directory
+from flask import jsonify, request, make_response, send_from_directory
 from werkzeug.exceptions import HTTPException
 from datetime import datetime
 import os
@@ -57,18 +57,14 @@ register_error_handlers(app)
 def register_middleware(app):
     """Register middleware functions"""
     @app.before_request
-    def handle_options():
-        if request.method == "OPTIONS":
-            resp = make_response('', 204)  # Відповідь 204 No Content
-            resp.headers["Access-Control-Allow-Origin"] = "*"
-            resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-            resp.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-            return resp
-
-    @app.before_request
     def validate_json():
-        # Skip validation for file upload endpoints
-        if request.endpoint in ['upload_auto_photos', 'serve_photo', 'serve_spa', 'get_auto_photos']:
+        # Skip JSON validation for endpoints that are not JSON-only.
+        endpoint = request.endpoint or ""
+        if request.method == "OPTIONS":
+            return
+        if endpoint.endswith("upload_auto_photos") or endpoint.endswith("get_auto_photos"):
+            return
+        if endpoint in {"serve_photo", "serve_spa", "session.session_logout"}:
             return
         if request.method in ['POST', 'PUT', 'PATCH']:
             if not request.is_json and request.content_type != 'application/json':

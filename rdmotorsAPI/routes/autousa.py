@@ -1,7 +1,7 @@
 """AutoUSA routes blueprint"""
 from flask import Blueprint, jsonify, request
 from rdmotorsAPI.models import AutoUsa, AutoUsaHistory, db
-from rdmotorsAPI.auth import require_api_key
+from rdmotorsAPI.auth import require_firebase_auth
 from rdmotorsAPI.utils import get_pagination_params, validate_vin, parse_date, sanitize_string
 from rdmotorsAPI.config import PHOTOS_AUTO_DIR, BASE_URL
 from rdmotorsAPI import limiter  # noqa: E402
@@ -17,7 +17,7 @@ autousa_bp = Blueprint('autousa', __name__)
 
 @autousa_bp.route("/autousa", methods=["GET"])
 @limiter.limit("100 per hour")
-@require_api_key
+@require_firebase_auth
 def get_autousa():
     """Get all autos with optional pagination"""
     page, per_page = get_pagination_params()
@@ -34,7 +34,7 @@ def get_autousa():
 
 
 @autousa_bp.route("/autousa/id/<int:car_id>", methods=["GET"])
-@require_api_key
+@require_firebase_auth
 def get_autousa_by_id(car_id):
     """Get auto by ID"""
     car = AutoUsa.query.get(car_id)
@@ -44,7 +44,7 @@ def get_autousa_by_id(car_id):
 
 
 @autousa_bp.route("/autousa/id/<int:car_id>", methods=["PUT", "PATCH"])
-@require_api_key
+@require_firebase_auth
 def update_autousa_by_id(car_id):
     """Update auto by ID"""
     car = AutoUsa.query.get(car_id)
@@ -109,7 +109,7 @@ def update_autousa_by_id(car_id):
 
 
 @autousa_bp.route("/autousa/id/<int:car_id>", methods=["DELETE"])
-@require_api_key
+@require_firebase_auth
 def delete_autousa_by_id(car_id):
     """Delete auto by ID"""
     car = AutoUsa.query.get(car_id)
@@ -138,7 +138,7 @@ def delete_autousa_by_id(car_id):
 
 
 @autousa_bp.route("/autousa/vin/<string:vin>", methods=["GET"])
-@require_api_key
+@require_firebase_auth
 def get_autousa_by_vin(vin):
     """Get auto by VIN"""
     if not validate_vin(vin):
@@ -152,7 +152,7 @@ def get_autousa_by_vin(vin):
 
 
 @autousa_bp.route("/autousa/vin/<string:vin>", methods=["PUT", "PATCH"])
-@require_api_key
+@require_firebase_auth
 def upsert_autousa_by_vin(vin):
     """Create or update auto by VIN"""
     if not validate_vin(vin):
@@ -224,7 +224,7 @@ def upsert_autousa_by_vin(vin):
 
 
 @autousa_bp.route("/autousa/vin/<string:vin>/history", methods=["GET"])
-@require_api_key
+@require_firebase_auth
 def get_autousa_history_by_vin(vin):
     """Get auto history by VIN"""
     if not validate_vin(vin):
@@ -261,7 +261,7 @@ def get_autousa_history_by_vin(vin):
 
 
 @autousa_bp.route("/autousa/vin/<string:vin>", methods=["DELETE"])
-@require_api_key
+@require_firebase_auth
 def delete_autousa_by_vin(vin):
     """Delete auto by VIN"""
     if not validate_vin(vin):
@@ -292,7 +292,7 @@ def delete_autousa_by_vin(vin):
 
 
 @autousa_bp.route("/autousa", methods=["POST"])
-@require_api_key
+@require_firebase_auth
 def add_autousa():
     """Create a new auto"""
     data = request.get_json(force=True)
@@ -321,7 +321,7 @@ def add_autousa():
 
 @autousa_bp.route("/autousa/<string:vin>/upload", methods=["POST"])
 @limiter.limit("20 per hour")  # Lower limit for file uploads
-@require_api_key
+@require_firebase_auth
 def upload_auto_photos(vin):
     """Upload photos for auto by VIN"""
     if not validate_vin(vin):

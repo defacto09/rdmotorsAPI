@@ -77,17 +77,14 @@ Once the server is running, access the interactive API documentation at:
 
 ## 🔐 Authentication
 
-All endpoints (except health check and public endpoints) require API key authentication.
+Protected CRUD endpoints now use Firebase session cookies (`httpOnly`) via backend session login.
 
-Include the API key in the request header:
-```
-Authorization: Bearer YOUR_API_KEY
-```
+- `POST /sessionLogin` (alias: `POST /api/login`) accepts Firebase `idToken` and sets:
+  - `__session` cookie (`httpOnly`, default 5 days)
+  - `csrfToken` cookie
+- `POST /sessionLogout` (alias: `POST /api/logout`) clears cookies and can optionally revoke Firebase refresh tokens (`{"revoke": true}`)
 
-Set your API key in the `.env` file:
-```env
-API_KEY=your_secret_api_key_here
-```
+Legacy API key authentication is still supported as a fallback for backward compatibility.
 
 ## 📡 API Endpoints
 
@@ -131,6 +128,10 @@ API_KEY=your_secret_api_key_here
 
 ### Health Check
 - `GET /health` - Check API health status
+
+### Session Auth
+- `POST /sessionLogin` - Exchange Firebase ID token for session cookie
+- `POST /sessionLogout` - Clear session cookies (optional token revocation)
 
 ## 🧪 Testing
 
@@ -223,7 +224,14 @@ API_KEY=your_secret_key
 BASE_URL=https://rdmotors.com.ua
 
 # CORS
-CORS_ORIGINS=*
+CORS_ORIGINS=https://your-frontend-domain.com
+SESSION_COOKIE_SECURE=true
+SESSION_COOKIE_SAMESITE=None
+
+# Firebase Admin
+FIREBASE_SERVICE_ACCOUNT_PATH=/absolute/path/to/firebase-service-account.json
+# or
+# FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 
 # File Storage
 PHOTOS_AUTO_DIR=/var/www/rdmotorsAPI/static/photos/autousa
