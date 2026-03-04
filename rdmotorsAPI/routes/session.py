@@ -35,6 +35,7 @@ def _parse_bool(value, default=False):
 
 
 @session_bp.route("/sessionLogin", methods=["POST"])
+@session_bp.route("/api/sessionLogin", methods=["POST"])
 @session_bp.route("/api/login", methods=["POST"])
 def session_login():
     """Create Firebase-backed session cookie from ID token."""
@@ -89,6 +90,7 @@ def session_login():
 
 
 @session_bp.route("/sessionLogout", methods=["POST"])
+@session_bp.route("/api/sessionLogout", methods=["POST"])
 @session_bp.route("/api/logout", methods=["POST"])
 def session_logout():
     """Clear session cookie and optionally revoke Firebase refresh tokens."""

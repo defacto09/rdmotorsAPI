@@ -56,6 +56,10 @@ def _get_firebase_auth():
         service_account_path = current_app.config.get("FIREBASE_SERVICE_ACCOUNT_PATH")
         service_account_json = current_app.config.get("FIREBASE_SERVICE_ACCOUNT_JSON")
         project_id = current_app.config.get("FIREBASE_PROJECT_ID")
+        private_key_id = current_app.config.get("FIREBASE_PRIVATE_KEY_ID")
+        private_key = current_app.config.get("FIREBASE_PRIVATE_KEY")
+        client_email = current_app.config.get("FIREBASE_CLIENT_EMAIL")
+        client_id = current_app.config.get("FIREBASE_CLIENT_ID")
 
         if service_account_json:
             try:
@@ -65,6 +69,20 @@ def _get_firebase_auth():
             cred = credentials.Certificate(cred_info)
         elif service_account_path:
             cred = credentials.Certificate(service_account_path)
+        elif project_id and private_key and client_email:
+            normalized_private_key = private_key.strip().strip('"').replace("\\n", "\n")
+            cred_info = {
+                "type": "service_account",
+                "project_id": project_id,
+                "private_key_id": private_key_id,
+                "private_key": normalized_private_key,
+                "client_email": client_email,
+                "client_id": client_id,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            }
+            cred = credentials.Certificate(cred_info)
         else:
             cred = credentials.ApplicationDefault()
 
@@ -112,10 +130,6 @@ def require_firebase_auth(f):
     """
     @wraps(f)
     def decorated(*args, **kwargs):
-        if _is_valid_api_key_request():
-            g.auth_mode = "api_key"
-            return f(*args, **kwargs)
-
         session_cookie_name = current_app.config.get("SESSION_COOKIE_NAME", "__session")
         session_cookie = request.cookies.get(session_cookie_name)
         if not session_cookie:
