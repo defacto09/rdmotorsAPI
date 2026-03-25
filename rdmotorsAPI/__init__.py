@@ -1,10 +1,12 @@
 """RD Motors API package initialization"""
+import os
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from rdmotorsAPI.config import Config
+from rdmotorsAPI.config import Config, get_missing_database_env_vars
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -15,10 +17,30 @@ limiter = Limiter(key_func=get_remote_address)
 from rdmotorsAPI import models  # noqa: E402, F401
 
 
-def create_app():
+def _prepare_app_config(app: Flask) -> None:
+    """Validate and normalize app configuration before extension init."""
+    database_uri = app.config.get("SQLALCHEMY_DATABASE_URI")
+    if not database_uri:
+        missing_vars = get_missing_database_env_vars()
+        missing = ", ".join(missing_vars) if missing_vars else "SQLALCHEMY_DATABASE_URI"
+        raise RuntimeError(
+            "Database configuration is missing. Set SQLALCHEMY_DATABASE_URI "
+            f"or provide DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME. Missing: {missing}"
+        )
+
+    if database_uri.startswith("sqlite"):
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {}
+
+    photos_auto_dir = app.config.get("PHOTOS_AUTO_DIR")
+    if photos_auto_dir:
+        os.makedirs(photos_auto_dir, exist_ok=True)
+
+
+def create_app(config_object=Config):
     """Application factory pattern"""
     app = Flask(__name__, static_folder='static')
-    app.config.from_object(Config)
+    app.config.from_object(config_object)
+    _prepare_app_config(app)
     
     # Initialize extensions
     db.init_app(app)

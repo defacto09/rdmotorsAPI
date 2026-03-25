@@ -130,11 +130,21 @@ def require_firebase_auth(f):
     """
     @wraps(f)
     def decorated(*args, **kwargs):
+        if _is_valid_api_key_request():
+            g.auth_mode = "api_key"
+            g.firebase_user = None
+            g.user_uid = None
+            return f(*args, **kwargs)
+
         session_cookie_name = current_app.config.get("SESSION_COOKIE_NAME", "__session")
         session_cookie = request.cookies.get(session_cookie_name)
         if not session_cookie:
-            logging.warning("Missing Firebase session cookie for %s from %s", request.path, request.remote_addr)
-            return jsonify({"error": "Unauthorized", "message": "Missing session cookie"}), 401
+            logging.warning(
+                "Missing Firebase session cookie and API key for %s from %s",
+                request.path,
+                request.remote_addr,
+            )
+            return jsonify({"error": "Unauthorized", "message": "Missing session cookie or valid API key"}), 401
 
         try:
             decoded_claims = verify_firebase_session_cookie(session_cookie, check_revoked=True)

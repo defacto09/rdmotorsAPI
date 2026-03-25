@@ -1,6 +1,6 @@
 """Pytest configuration and fixtures"""
-import pytest
 import os
+import pytest
 from rdmotorsAPI import create_app, db
 from rdmotorsAPI.config import Config
 from rdmotorsAPI.models import Service, Location, AutoUsa, Client, Car, AutoUsaHistory
@@ -14,19 +14,29 @@ class TestConfig(Config):
         'sqlite:///:memory:'
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {}
     API_KEY = 'test_api_key_for_testing'
     WTF_CSRF_ENABLED = False
+    ENABLE_API_DOCS = False
+    PHOTOS_AUTO_DIR = os.path.join(
+        os.path.dirname(__file__),
+        ".tmp",
+        "photos",
+        "autousa",
+    )
 
 
 @pytest.fixture
 def app():
     """Create application for testing"""
-    app = create_app()
-    app.config.from_object(TestConfig)
+    app = create_app(TestConfig)
     
     with app.app_context():
+        db.session.remove()
+        db.session.configure(expire_on_commit=False)
         db.create_all()
         yield app
+        db.session.remove()
         db.drop_all()
 
 
@@ -87,6 +97,8 @@ def sample_autousa(app, sample_location):
         )
         db.session.add(auto)
         db.session.commit()
+        _ = auto.loc_now
+        _ = auto.loc_next
         return auto
 
 

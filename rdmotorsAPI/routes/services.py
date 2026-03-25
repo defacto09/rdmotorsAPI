@@ -11,7 +11,6 @@ services_bp = Blueprint('services', __name__)
 
 @services_bp.route("/services", methods=["GET"])
 @limiter.limit("100 per hour")
-@require_firebase_auth
 def get_services():
     """Get all services with optional pagination"""
     page, per_page = get_pagination_params()
@@ -28,7 +27,6 @@ def get_services():
 
 
 @services_bp.route("/services/<int:service_id>", methods=["GET"])
-@require_firebase_auth
 def get_service_by_id(service_id):
     """Get service by ID"""
     service = Service.query.get(service_id)

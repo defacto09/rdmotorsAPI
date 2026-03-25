@@ -1,6 +1,6 @@
 """Configuration module for the API"""
 import os
-from typing import List
+from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
@@ -22,30 +22,42 @@ def _parse_cors_origins(value: str) -> List[str]:
         return ["http://localhost:3000"]
     return [origin for origin in origins if origin != "*"] or ["http://localhost:3000"]
 
-# Database configuration
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
-DB_NAME = os.getenv("DB_NAME")
+
+def _get_database_env() -> Dict[str, Optional[str]]:
+    """Collect database-related environment variables."""
+    return {
+        "DB_USER": os.getenv("DB_USER"),
+        "DB_PASSWORD": os.getenv("DB_PASSWORD"),
+        "DB_HOST": os.getenv("DB_HOST"),
+        "DB_PORT": os.getenv("DB_PORT"),
+        "DB_NAME": os.getenv("DB_NAME"),
+    }
+
+
+def get_missing_database_env_vars() -> List[str]:
+    """Return missing database env vars for default MySQL configuration."""
+    return [key for key, value in _get_database_env().items() if not value]
+
+
+def _build_sqlalchemy_database_uri() -> Optional[str]:
+    """Build SQLAlchemy database URI from environment configuration."""
+    explicit_uri = os.getenv("SQLALCHEMY_DATABASE_URI") or os.getenv("DATABASE_URL")
+    if explicit_uri:
+        return explicit_uri
+
+    db_env = _get_database_env()
+    missing_vars = [key for key, value in db_env.items() if not value]
+    if missing_vars:
+        return None
+
+    db_password_escaped = quote_plus(db_env["DB_PASSWORD"] or "")
+    return (
+        f"mysql+pymysql://{db_env['DB_USER']}:{db_password_escaped}"
+        f"@{db_env['DB_HOST']}:{db_env['DB_PORT']}/{db_env['DB_NAME']}?charset=utf8mb4"
+    )
+
 API_KEY = os.getenv("API_KEY")
-
-# Validate required environment variables
-required_env_vars = {
-    "DB_USER": DB_USER,
-    "DB_PASSWORD": DB_PASSWORD,
-    "DB_HOST": DB_HOST,
-    "DB_PORT": DB_PORT,
-    "DB_NAME": DB_NAME
-}
-
-missing_vars = [key for key, value in required_env_vars.items() if not value]
-if missing_vars:
-    raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
-
-# Flask configuration
-DB_PASSWORD_ESCAPED = quote_plus(DB_PASSWORD)
-SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD_ESCAPED}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+SQLALCHEMY_DATABASE_URI = _build_sqlalchemy_database_uri()
 
 # CORS configuration
 CORS_ORIGINS = _parse_cors_origins(os.getenv("CORS_ORIGINS", "http://localhost:3000"))
@@ -71,7 +83,6 @@ SESSION_COOKIE_EXPIRES_DAYS = int(os.getenv("SESSION_COOKIE_EXPIRES_DAYS", "5"))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PHOTOS_DIR = os.path.join(BASE_DIR, "static", "photos", "services")
 PHOTOS_AUTO_DIR = os.getenv("PHOTOS_AUTO_DIR", "/var/www/rdmotorsAPI/static/photos/autousa")
-os.makedirs(PHOTOS_AUTO_DIR, exist_ok=True)
 
 # App configuration
 class Config:
@@ -88,6 +99,9 @@ class Config:
     }
     MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 200 MB
     PREFERRED_URL_SCHEME = os.getenv("URL_SCHEME", "https")  # Default to https for production
+    BASE_URL = BASE_URL
+    PHOTOS_DIR = PHOTOS_DIR
+    PHOTOS_AUTO_DIR = PHOTOS_AUTO_DIR
     
     # Rate limiting configuration
     RATELIMIT_STORAGE_URL = os.getenv("RATELIMIT_STORAGE_URL", "memory://")

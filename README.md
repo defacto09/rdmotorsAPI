@@ -77,7 +77,7 @@ Once the server is running, access the interactive API documentation at:
 
 ## 🔐 Authentication
 
-Protected CRUD endpoints now use Firebase session cookies (`httpOnly`) via backend session login.
+Protected write endpoints use Firebase session cookies (`httpOnly`) via backend session login.
 
 - `POST /sessionLogin` (alias: `POST /api/login`) accepts Firebase `idToken` and sets:
   - `__session` cookie (`httpOnly`, default 5 days)
@@ -85,6 +85,12 @@ Protected CRUD endpoints now use Firebase session cookies (`httpOnly`) via backe
 - `POST /sessionLogout` (alias: `POST /api/logout`) clears cookies and can optionally revoke Firebase refresh tokens (`{"revoke": true}`)
 
 Legacy API key authentication is still supported as a fallback for backward compatibility.
+
+Public read endpoints:
+- `GET /services`
+- `GET /services/<id>`
+- `GET /cars`
+- `GET /cars/<id>`
 
 ## 📡 API Endpoints
 

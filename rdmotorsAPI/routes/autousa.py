@@ -1,9 +1,8 @@
 """AutoUSA routes blueprint"""
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from rdmotorsAPI.models import AutoUsa, AutoUsaHistory, db
 from rdmotorsAPI.auth import require_firebase_auth
 from rdmotorsAPI.utils import get_pagination_params, validate_vin, parse_date, sanitize_string
-from rdmotorsAPI.config import PHOTOS_AUTO_DIR, BASE_URL
 from rdmotorsAPI import limiter  # noqa: E402
 import os
 import shutil
@@ -13,6 +12,16 @@ from zipfile import ZipFile
 from werkzeug.utils import secure_filename
 
 autousa_bp = Blueprint('autousa', __name__)
+
+
+def _get_photos_auto_dir():
+    """Get AutoUSA photos directory from app config."""
+    return current_app.config["PHOTOS_AUTO_DIR"]
+
+
+def _get_base_url():
+    """Get base URL from app config."""
+    return current_app.config["BASE_URL"]
 
 
 @autousa_bp.route("/autousa", methods=["GET"])
@@ -117,7 +126,7 @@ def delete_autousa_by_id(car_id):
         return jsonify({"error": "Auto not found"}), 404
     
     vin = car.vin
-    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    vin_folder = os.path.join(_get_photos_auto_dir(), vin)
     if os.path.exists(vin_folder):
         try:
             shutil.rmtree(vin_folder)
@@ -271,7 +280,7 @@ def delete_autousa_by_vin(vin):
     if not car:
         return jsonify({"error": "Auto not found"}), 404
 
-    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    vin_folder = os.path.join(_get_photos_auto_dir(), vin)
     if os.path.exists(vin_folder):
         try:
             shutil.rmtree(vin_folder)
@@ -339,7 +348,7 @@ def upload_auto_photos(vin):
     if not file.filename.endswith('.zip'):
         return jsonify({"error": 'File must be a .zip'}), 400
 
-    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    vin_folder = os.path.join(_get_photos_auto_dir(), vin)
     os.makedirs(vin_folder, exist_ok=True)
 
     temp_path = os.path.join(vin_folder, 'temp.zip')
@@ -385,7 +394,7 @@ def get_auto_photos(vin):
     if not validate_vin(vin):
         return jsonify({"error": "Invalid VIN format. VIN must be 17 alphanumeric characters"}), 400
     
-    vin_folder = os.path.join(PHOTOS_AUTO_DIR, vin)
+    vin_folder = os.path.join(_get_photos_auto_dir(), vin)
     if not os.path.exists(vin_folder):
         return jsonify({"error": "No photos found for this VIN"}), 404
 
@@ -401,7 +410,7 @@ def get_auto_photos(vin):
             if ext not in allowed_ext:
                 continue
 
-            files.append(f"{BASE_URL}/photos/autousa/{vin}/{f}")
+            files.append(f"{_get_base_url()}/photos/autousa/{vin}/{f}")
 
         return jsonify({"vin": vin, "photos": files})
     except Exception as e:

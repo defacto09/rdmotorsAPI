@@ -1,18 +1,20 @@
 """Tests for services endpoints"""
-import pytest
-import json
+from rdmotorsAPI.models import Service
 
 
 class TestGetServices:
     """Test GET /services endpoint"""
     
-    def test_get_services_requires_auth(self, client):
-        """Test that authentication is required"""
+    def test_get_services_is_public(self, client):
+        """Test that services listing is public"""
         response = client.get('/services')
-        assert response.status_code == 401
+        assert response.status_code == 200
+        data = response.get_json()
+        assert 'data' in data
+        assert 'pagination' in data
     
-    def test_get_services_with_auth(self, client, auth_headers, sample_service):
-        """Test getting services with authentication"""
+    def test_get_services_with_auth_still_works(self, client, auth_headers, sample_service):
+        """Test getting services with optional authentication"""
         response = client.get('/services', headers=auth_headers)
         assert response.status_code == 200
         data = response.get_json()
@@ -20,7 +22,7 @@ class TestGetServices:
         assert 'pagination' in data
         assert len(data['data']) >= 1
     
-    def test_get_services_pagination(self, client, auth_headers, app, sample_service):
+    def test_get_services_pagination(self, client, app, sample_service):
         """Test pagination"""
         with app.app_context():
             # Create more services
@@ -37,7 +39,7 @@ class TestGetServices:
             from rdmotorsAPI import db
             db.session.commit()
         
-        response = client.get('/services?page=1&per_page=2', headers=auth_headers)
+        response = client.get('/services?page=1&per_page=2')
         assert response.status_code == 200
         data = response.get_json()
         assert len(data['data']) == 2
@@ -48,14 +50,14 @@ class TestGetServices:
 class TestGetServiceById:
     """Test GET /services/<id> endpoint"""
     
-    def test_get_service_by_id_not_found(self, client, auth_headers):
+    def test_get_service_by_id_not_found(self, client):
         """Test getting non-existent service"""
-        response = client.get('/services/99999', headers=auth_headers)
+        response = client.get('/services/99999')
         assert response.status_code == 404
     
-    def test_get_service_by_id_success(self, client, auth_headers, sample_service):
+    def test_get_service_by_id_success(self, client, sample_service):
         """Test getting service by ID"""
-        response = client.get(f'/services/{sample_service.service_id}', headers=auth_headers)
+        response = client.get(f'/services/{sample_service.service_id}')
         assert response.status_code == 200
         data = response.get_json()
         assert data['service_id'] == sample_service.service_id
@@ -143,5 +145,5 @@ class TestDeleteService:
         assert response.status_code == 200
         
         # Verify it's deleted
-        response = client.get(f'/services/{service_id}', headers=auth_headers)
+        response = client.get(f'/services/{service_id}')
         assert response.status_code == 404

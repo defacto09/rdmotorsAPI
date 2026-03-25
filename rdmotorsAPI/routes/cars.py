@@ -9,7 +9,6 @@ cars_bp = Blueprint('cars', __name__)
 
 
 @cars_bp.route("/cars", methods=["GET"])
-@require_firebase_auth
 def get_cars():
     """Get all cars with optional pagination"""
     page, per_page = get_pagination_params()
@@ -26,7 +25,6 @@ def get_cars():
 
 
 @cars_bp.route("/cars/<int:car_id>", methods=["GET"])
-@require_firebase_auth
 def get_car_by_id(car_id):
     """Get car by ID"""
     car = Car.query.get(car_id)

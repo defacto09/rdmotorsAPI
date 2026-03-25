@@ -1,25 +1,32 @@
 """Utility functions for the API"""
-from flask import request
+from flask import current_app, has_app_context, request
 from datetime import datetime
 import bleach
 from rdmotorsAPI.config import BASE_URL
 
 
+def get_base_url():
+    """Get base URL from app config when available."""
+    if has_app_context():
+        return current_app.config.get("BASE_URL", BASE_URL)
+    return BASE_URL
+
+
 def get_photo_url(filename):
     """Get photo URL for services"""
-    return f"{BASE_URL}/photos/services/{filename}"
+    return f"{get_base_url()}/photos/services/{filename}"
 
 
 def get_car_photo_url(filename):
     """Get photo URL for cars"""
-    return f"{BASE_URL}/photos/cars/{filename}"
+    return f"{get_base_url()}/photos/cars/{filename}"
 
 
 def get_service_photo_url(filename):
     """Get service photo URL"""
     if not filename:
         return None
-    return f"{BASE_URL}/static/photos/services/{filename}"
+    return f"{get_base_url()}/static/photos/services/{filename}"
 
 
 def parse_date(date_str):
