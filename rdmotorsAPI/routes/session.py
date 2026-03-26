@@ -20,6 +20,7 @@ def _get_cookie_security_config():
     return {
         "secure": current_app.config.get("SESSION_COOKIE_SECURE", True),
         "samesite": current_app.config.get("SESSION_COOKIE_SAMESITE", "None"),
+        "domain": current_app.config.get("SESSION_COOKIE_DOMAIN"),
         "path": "/",
     }
 
@@ -75,6 +76,7 @@ def session_login():
         httponly=True,
         secure=cookie_security["secure"],
         samesite=cookie_security["samesite"],
+        domain=cookie_security["domain"],
         path=cookie_security["path"],
     )
     response.set_cookie(
@@ -84,6 +86,7 @@ def session_login():
         httponly=False,
         secure=cookie_security["secure"],
         samesite=cookie_security["samesite"],
+        domain=cookie_security["domain"],
         path=cookie_security["path"],
     )
     return response, 200
@@ -114,12 +117,14 @@ def session_logout():
     response = jsonify({"status": "success"})
     response.delete_cookie(
         session_cookie_name,
+        domain=cookie_security["domain"],
         path=cookie_security["path"],
         secure=cookie_security["secure"],
         samesite=cookie_security["samesite"],
     )
     response.delete_cookie(
         csrf_cookie_name,
+        domain=cookie_security["domain"],
         path=cookie_security["path"],
         secure=cookie_security["secure"],
         samesite=cookie_security["samesite"],

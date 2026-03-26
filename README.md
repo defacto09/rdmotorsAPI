@@ -233,6 +233,8 @@ BASE_URL=https://rdmotors.com.ua
 CORS_ORIGINS=https://your-frontend-domain.com
 SESSION_COOKIE_SECURE=true
 SESSION_COOKIE_SAMESITE=None
+# Optional: share auth cookies between rdmotors.com.ua and www.rdmotors.com.ua
+SESSION_COOKIE_DOMAIN=.rdmotors.com.ua
 
 # Firebase Admin
 FIREBASE_SERVICE_ACCOUNT_PATH=/absolute/path/to/firebase-service-account.json
