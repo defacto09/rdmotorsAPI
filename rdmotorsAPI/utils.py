@@ -17,6 +17,9 @@ def should_serve_spa():
     if request.method != "GET":
         return False
 
+    if request.path.startswith("/api/"):
+        return False
+
     sec_fetch_dest = request.headers.get("Sec-Fetch-Dest", "").lower()
     sec_fetch_mode = request.headers.get("Sec-Fetch-Mode", "").lower()
     if sec_fetch_dest == "document" or sec_fetch_mode == "navigate":

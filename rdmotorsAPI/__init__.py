@@ -77,10 +77,15 @@ def create_app(config_object=Config):
     # Register blueprints
     from rdmotorsAPI.routes import services, autousa, cars, clients, locations, session
     app.register_blueprint(services.services_bp)
+    app.register_blueprint(services.services_bp, url_prefix="/api", name="api_services")
     app.register_blueprint(autousa.autousa_bp)
+    app.register_blueprint(autousa.autousa_bp, url_prefix="/api", name="api_autousa")
     app.register_blueprint(cars.cars_bp)
+    app.register_blueprint(cars.cars_bp, url_prefix="/api", name="api_cars")
     app.register_blueprint(clients.clients_bp)
+    app.register_blueprint(clients.clients_bp, url_prefix="/api", name="api_clients")
     app.register_blueprint(locations.locations_bp)
+    app.register_blueprint(locations.locations_bp, url_prefix="/api", name="api_locations")
     app.register_blueprint(session.session_bp)
     
     # Register API documentation (optional - can be disabled in production)

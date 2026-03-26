@@ -139,6 +139,16 @@ Public read endpoints:
 - `POST /sessionLogin` - Exchange Firebase ID token for session cookie
 - `POST /sessionLogout` - Clear session cookies (optional token revocation)
 
+### API Prefixes
+- All resource endpoints are also available under `/api/...`
+- Preferred frontend URLs:
+  - `GET /api/services`
+  - `GET /api/cars`
+  - `GET /api/clients`
+  - `GET /api/autousa`
+  - `GET /api/locations`
+- Use `/api/...` for data requests and keep root paths like `/services` for browser pages
+
 ## 🧪 Testing
 
 Run tests with pytest:
