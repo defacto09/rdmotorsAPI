@@ -1,5 +1,6 @@
 """RD Motors API package initialization"""
 import os
+from pathlib import Path
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -15,6 +16,26 @@ limiter = Limiter(key_func=get_remote_address)
 
 # Import models after db is created (models import db from here)
 from rdmotorsAPI import models  # noqa: E402, F401
+
+
+def _resolve_static_folder(config_object) -> str:
+    """Resolve the static directory used to serve the SPA frontend."""
+    configured_static = getattr(config_object, "STATIC_FOLDER", None)
+    if configured_static:
+        return str(configured_static)
+
+    package_dir = Path(__file__).resolve().parent
+    project_root = package_dir.parent
+    candidates = [
+        project_root / "static",
+        package_dir / "static",
+    ]
+
+    for candidate in candidates:
+        if (candidate / "index.html").exists():
+            return str(candidate)
+
+    return str(candidates[0])
 
 
 def _prepare_app_config(app: Flask) -> None:
@@ -38,7 +59,7 @@ def _prepare_app_config(app: Flask) -> None:
 
 def create_app(config_object=Config):
     """Application factory pattern"""
-    app = Flask(__name__, static_folder='static')
+    app = Flask(__name__, static_folder=_resolve_static_folder(config_object))
     app.config.from_object(config_object)
     _prepare_app_config(app)
     

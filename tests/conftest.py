@@ -30,6 +30,7 @@ class TestConfig(Config):
         ".tmp",
         "static",
     )
+    STATIC_FOLDER = STATIC_DIR
 
 
 @pytest.fixture
@@ -42,7 +43,6 @@ def app():
     os.makedirs(TestConfig.STATIC_DIR, exist_ok=True)
     with open(os.path.join(TestConfig.STATIC_DIR, "index.html"), "w", encoding="utf-8") as f:
         f.write("<!doctype html><html><body>RD Motors Test SPA</body></html>")
-    app.static_folder = TestConfig.STATIC_DIR
     
     with app.app_context():
         db.session.remove()
