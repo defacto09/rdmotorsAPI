@@ -2,7 +2,7 @@
 from flask import Blueprint, jsonify, request
 from rdmotorsAPI.models import Car, db
 from rdmotorsAPI.auth import require_firebase_auth
-from rdmotorsAPI.utils import get_pagination_params
+from rdmotorsAPI.utils import get_pagination_params, serve_spa_index, should_serve_spa
 import logging
 
 cars_bp = Blueprint('cars', __name__)
@@ -11,6 +11,9 @@ cars_bp = Blueprint('cars', __name__)
 @cars_bp.route("/cars", methods=["GET"])
 def get_cars():
     """Get all cars with optional pagination"""
+    if should_serve_spa():
+        return serve_spa_index()
+
     page, per_page = get_pagination_params()
     pagination = Car.query.paginate(page=page, per_page=per_page, error_out=False)
     return jsonify({
@@ -27,6 +30,9 @@ def get_cars():
 @cars_bp.route("/cars/<int:car_id>", methods=["GET"])
 def get_car_by_id(car_id):
     """Get car by ID"""
+    if should_serve_spa():
+        return serve_spa_index()
+
     car = Car.query.get(car_id)
     if car:
         return jsonify(car.to_dict())

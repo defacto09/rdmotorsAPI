@@ -2,7 +2,12 @@
 from flask import Blueprint, jsonify, request
 from rdmotorsAPI.models import Service, db
 from rdmotorsAPI.auth import require_firebase_auth
-from rdmotorsAPI.utils import get_pagination_params, sanitize_string
+from rdmotorsAPI.utils import (
+    get_pagination_params,
+    sanitize_string,
+    serve_spa_index,
+    should_serve_spa,
+)
 from rdmotorsAPI import limiter  # noqa: E402
 import logging
 
@@ -13,6 +18,9 @@ services_bp = Blueprint('services', __name__)
 @limiter.limit("100 per hour")
 def get_services():
     """Get all services with optional pagination"""
+    if should_serve_spa():
+        return serve_spa_index()
+
     page, per_page = get_pagination_params()
     pagination = Service.query.paginate(page=page, per_page=per_page, error_out=False)
     return jsonify({
@@ -29,6 +37,9 @@ def get_services():
 @services_bp.route("/services/<int:service_id>", methods=["GET"])
 def get_service_by_id(service_id):
     """Get service by ID"""
+    if should_serve_spa():
+        return serve_spa_index()
+
     service = Service.query.get(service_id)
     if service:
         return jsonify(service.to_dict())

@@ -1,5 +1,6 @@
 """Pytest configuration and fixtures"""
 import os
+import shutil
 import pytest
 from rdmotorsAPI import create_app, db
 from rdmotorsAPI.config import Config
@@ -24,12 +25,24 @@ class TestConfig(Config):
         "photos",
         "autousa",
     )
+    STATIC_DIR = os.path.join(
+        os.path.dirname(__file__),
+        ".tmp",
+        "static",
+    )
 
 
 @pytest.fixture
 def app():
     """Create application for testing"""
+    shutil.rmtree(TestConfig.STATIC_DIR, ignore_errors=True)
+    shutil.rmtree(TestConfig.PHOTOS_AUTO_DIR, ignore_errors=True)
+
     app = create_app(TestConfig)
+    os.makedirs(TestConfig.STATIC_DIR, exist_ok=True)
+    with open(os.path.join(TestConfig.STATIC_DIR, "index.html"), "w", encoding="utf-8") as f:
+        f.write("<!doctype html><html><body>RD Motors Test SPA</body></html>")
+    app.static_folder = TestConfig.STATIC_DIR
     
     with app.app_context():
         db.session.remove()
@@ -38,6 +51,9 @@ def app():
         yield app
         db.session.remove()
         db.drop_all()
+
+    shutil.rmtree(TestConfig.STATIC_DIR, ignore_errors=True)
+    shutil.rmtree(TestConfig.PHOTOS_AUTO_DIR, ignore_errors=True)
 
 
 @pytest.fixture
@@ -52,6 +68,16 @@ def auth_headers():
     return {
         'Authorization': 'Bearer test_api_key_for_testing',
         'Content-Type': 'application/json'
+    }
+
+
+@pytest.fixture
+def browser_headers():
+    """Headers that mimic direct browser navigation to an HTML page."""
+    return {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Dest': 'document',
     }
 
 

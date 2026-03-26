@@ -12,6 +12,26 @@ def get_base_url():
     return BASE_URL
 
 
+def should_serve_spa():
+    """Return True for browser document navigation that should receive SPA HTML."""
+    if request.method != "GET":
+        return False
+
+    sec_fetch_dest = request.headers.get("Sec-Fetch-Dest", "").lower()
+    sec_fetch_mode = request.headers.get("Sec-Fetch-Mode", "").lower()
+    if sec_fetch_dest == "document" or sec_fetch_mode == "navigate":
+        return True
+
+    accepts_html = request.accept_mimetypes["text/html"]
+    accepts_json = request.accept_mimetypes["application/json"]
+    return accepts_html > accepts_json
+
+
+def serve_spa_index():
+    """Serve SPA entrypoint from the configured static folder."""
+    return current_app.send_static_file("index.html")
+
+
 def get_photo_url(filename):
     """Get photo URL for services"""
     return f"{get_base_url()}/photos/services/{filename}"

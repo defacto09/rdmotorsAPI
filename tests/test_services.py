@@ -12,6 +12,13 @@ class TestGetServices:
         data = response.get_json()
         assert 'data' in data
         assert 'pagination' in data
+
+    def test_services_browser_navigation_serves_spa(self, client, browser_headers):
+        """Test that browser navigation receives SPA HTML instead of API JSON."""
+        response = client.get('/services', headers=browser_headers)
+        assert response.status_code == 200
+        assert 'text/html' in response.content_type
+        assert b'RD Motors Test SPA' in response.data
     
     def test_get_services_with_auth_still_works(self, client, auth_headers, sample_service):
         """Test getting services with optional authentication"""
@@ -62,6 +69,13 @@ class TestGetServiceById:
         data = response.get_json()
         assert data['service_id'] == sample_service.service_id
         assert data['name'] == sample_service.name
+
+    def test_service_page_browser_navigation_serves_spa(self, client, sample_service, browser_headers):
+        """Test that browser navigation to service page receives SPA HTML."""
+        response = client.get(f'/services/{sample_service.service_id}', headers=browser_headers)
+        assert response.status_code == 200
+        assert 'text/html' in response.content_type
+        assert b'RD Motors Test SPA' in response.data
 
 
 class TestCreateService:
