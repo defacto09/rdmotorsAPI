@@ -64,6 +64,7 @@ CORS_ORIGINS = _parse_cors_origins(os.getenv("CORS_ORIGINS", "http://localhost:3
 
 # Base URL for generating photo URLs
 BASE_URL = os.getenv("BASE_URL", "https://rdmotors.com.ua")
+STATIC_FOLDER = os.getenv("STATIC_FOLDER") or os.getenv("FRONTEND_STATIC_FOLDER")
 
 # Firebase / Session auth configuration
 FIREBASE_SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH")
@@ -100,6 +101,7 @@ class Config:
     MAX_CONTENT_LENGTH = 200 * 1024 * 1024  # 200 MB
     PREFERRED_URL_SCHEME = os.getenv("URL_SCHEME", "https")  # Default to https for production
     BASE_URL = BASE_URL
+    STATIC_FOLDER = STATIC_FOLDER
     PHOTOS_DIR = PHOTOS_DIR
     PHOTOS_AUTO_DIR = PHOTOS_AUTO_DIR
     

@@ -248,6 +248,10 @@ FIREBASE_SERVICE_ACCOUNT_PATH=/absolute/path/to/firebase-service-account.json
 # File Storage
 PHOTOS_AUTO_DIR=/var/www/rdmotorsAPI/static/photos/autousa
 
+# SPA frontend build directory
+# Set this to the folder that contains index.html for browser routes like /services
+STATIC_FOLDER=/absolute/path/to/frontend/dist
+
 # Rate Limiting
 RATELIMIT_ENABLED=true
 ```
